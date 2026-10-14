@@ -1,12 +1,17 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PortalDataController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
 Route::view('/portal', 'llcc-portal');
+
+Route::get('/admin', [AdminController::class, 'index']);
+Route::post('/admin/teachers', [AdminController::class, 'storeTeacher'])->middleware('throttle:10,1');
+Route::post('/admin/logout', [AdminController::class, 'logout']);
 
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
 Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
