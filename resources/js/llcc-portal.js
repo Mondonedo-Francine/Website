@@ -1637,7 +1637,7 @@ function initTeacherMessages() {
                 );
             }).join('')
             : '<div class="empty-state" style="padding:22px">' +
-                'No other registered students or teachers found.' +
+                'No other student or teacher accounts are registered in this database yet. Register a second account with the Student or Teacher role, then refresh this page.' +
               '</div>';
 
         list.querySelectorAll('[data-person]').forEach(button => {
@@ -2151,10 +2151,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const dialog = document.createElement('div');
         dialog.id = 'turnInStudentsDialog';
         dialog.className = 'details-box';
+        Object.assign(dialog.style, {
+            position: 'fixed', inset: '0', zIndex: '99999',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px', background: 'rgba(15, 23, 42, .55)',
+            overflowY: 'auto'
+        });
+        dialog.addEventListener('click', event => {
+            if (event.target === dialog) dialog.remove();
+        });
         dialog.setAttribute('role', 'dialog');
         dialog.setAttribute('aria-modal', 'true');
         const content = document.createElement('div');
         content.className = 'homework-details-content';
+        Object.assign(content.style, {
+            width: 'min(560px, 100%)', maxHeight: 'min(80vh, 720px)',
+            overflowY: 'auto', margin: '0', background: 'var(--card, #fff)',
+            borderRadius: '16px', padding: '24px', boxShadow: '0 20px 60px rgba(0,0,0,.25)'
+        });
         const heading = document.createElement('h3');
         heading.textContent = 'Students who turned in';
         content.appendChild(heading);
