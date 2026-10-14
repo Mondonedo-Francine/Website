@@ -30,6 +30,7 @@ Route::post('/auth/logout', [AuthController::class, 'logout']);
 Route::middleware('auth')->prefix('api')->group(function () {
     Route::post('/profile/picture', [ProfilePictureController::class, 'store']);
     Route::delete('/profile/picture', [ProfilePictureController::class, 'destroy']);
+    Route::get('/teacher/dashboard-stats', [PortalDataController::class, 'teacherDashboardStats']);
     Route::get('/attendance/student', [PortalDataController::class, 'studentAttendance']);
     Route::get('/attendance/classes', [PortalDataController::class, 'attendanceClasses']);
     Route::get('/attendance', [PortalDataController::class, 'attendance']);
