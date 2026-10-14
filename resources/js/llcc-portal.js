@@ -1172,6 +1172,8 @@ function renderNotices() {
     );
 
     const allNotices = [...customNotices, ...defaultNotices];
+    renderDashboardLatestNotices(allNotices);
+
     const container = document.getElementById("noticesContainer");
     if (!container) return;
 
@@ -1182,37 +1184,138 @@ function renderNotices() {
         card.className = "card";
         card.style.marginBottom = "17px";
 
-        card.innerHTML = `
+        card.innerHTML = \`
             <div class="card-header" style="margin-bottom:10px;">
-                <h3>${escapeHTML(notice.title)}</h3>
-                <span class="badge info">${escapeHTML(notice.date)}</span>
+                <h3>\${escapeHTML(notice.title)}</h3>
+                <span class="badge info">\${escapeHTML(notice.date)}</span>
             </div>
             <p style="font-size:13px;color:#737b8c;line-height:1.7;">
-                ${escapeHTML(notice.description)}
+                \${escapeHTML(notice.description)}
             </p>
-        `;
+        \`;
 
         container.appendChild(card);
     });
 }
 
-/* Refresh dashboard recent activity when notices or notifications change. */
+/* Keep the dashboard's Latest Notices card in sync with published notices. */
+function renderDashboardLatestNotices(notices = null) {
+    let allNotices = notices;
+
+    if (!Array.isArray(allNotices)) {
+        let customNotices = [];
+        try {
+            customNotices = JSON.parse(localStorage.getItem(CUSTOM_NOTICES_KEY) || "[]");
+        } catch (_) {}
+        allNotices = [...customNotices, ...defaultNotices];
+    }
+
+    const container = document.getElementById("dashboardLatestNotices");
+    if (!container) return;
+
+    container.innerHTML = "";
+    allNotices.slice(0, 3).forEach(notice => {
+        const item = document.createElement("div");
+        item.className = "notice-item";
+        item.innerHTML = \`
+            <strong>\${escapeHTML(notice.title || "Untitled notice")}</strong>
+            <p>\${escapeHTML(notice.description || "")}</p>
+            <span class="notice-date">\${escapeHTML(notice.date || "Recently")}</span>
+        \`;
+        container.appendChild(item);
+    });
+
+    if (!allNotices.length) {
+        container.innerHTML = '<p class="student-recent-activity-empty">No notices published yet.</p>';
+    }
+}
+
+/* Recent Activity is reserved for teacher-created solutions/lesson plans only. */
 function refreshStudentRecentActivity() {
     const user = getCurrentUser();
     if (user?.role !== "student") return;
-    const heading = Array.from(document.querySelectorAll("h3")).find(node => node.textContent.trim() === "Recent Activity");
+
+    const heading = Array.from(document.querySelectorAll("h3"))
+        .find(node => node.textContent.trim() === "Recent Activity");
     const card = heading?.closest(".card");
     if (!card) return;
-    card.querySelectorAll(".activity-item, .student-recent-activity-empty").forEach(node => node.remove());
-    let notices = [];
-    try { notices = JSON.parse(localStorage.getItem(CUSTOM_NOTICES_KEY) || "[]"); } catch (_) {}
-    const notifications = Array.from(document.querySelectorAll(".notification-entry")).map(node => ({ title: node.querySelector("strong")?.textContent || "New notification", date: node.querySelector("small")?.textContent || "Recently", icon: "•" }));
-    const items = notices.map(notice => ({ title: "New notice: " + (notice.title || "Announcement"), date: notice.date || "Recently", icon: "◌" })).concat(notifications).slice(-5).reverse();
-    if (!items.length) { const empty = document.createElement("p"); empty.className = "student-recent-activity-empty"; empty.textContent = "No new activity yet."; card.appendChild(empty); return; }
-    items.forEach(item => { const row = document.createElement("div"); row.className = "activity-item"; const icon = document.createElement("div"); icon.className = "activity-icon"; icon.textContent = item.icon; const content = document.createElement("div"); const title = document.createElement("strong"); title.textContent = item.title; const date = document.createElement("span"); date.textContent = item.date; content.append(title, date); row.append(icon, content); card.appendChild(row); });
+
+    card.querySelectorAll(".activity-item, .student-recent-activity-empty")
+        .forEach(node => node.remove());
+
+    let solutions = [];
+    try {
+        const saved = JSON.parse(localStorage.getItem("llcc_class_lesson_plans_v1") || "[]");
+        solutions = Array.isArray(saved) ? saved : [];
+    } catch (_) {}
+
+    const normalizeClass = value => String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+
+    const studentClass = normalizeClass(user.className);
+    const items = solutions
+        .filter(solution => {
+            const targetClass = String(solution.targetClass || "").trim();
+            return targetClass.toLowerCase() === "all classes" ||
+                !studentClass ||
+                normalizeClass(targetClass) === studentClass;
+        })
+        .sort((a, b) => {
+            const timeA = Number(a.id) || Date.parse(a.sentAt || "") || 0;
+            const timeB = Number(b.id) || Date.parse(b.sentAt || "") || 0;
+            return timeB - timeA;
+        })
+        .slice(0, 5);
+
+    if (!items.length) {
+        const empty = document.createElement("p");
+        empty.className = "student-recent-activity-empty";
+        empty.textContent = "No teacher-created solutions yet.";
+        card.appendChild(empty);
+        return;
+    }
+
+    items.forEach(solution => {
+        const row = document.createElement("div");
+        row.className = "activity-item";
+
+        const icon = document.createElement("div");
+        icon.className = "activity-icon";
+        icon.textContent = "▤";
+
+        const content = document.createElement("div");
+        const title = document.createElement("strong");
+        title.textContent = "Solution: " + (solution.title || "Untitled solution");
+
+        const date = document.createElement("span");
+        date.textContent = solution.sentAt || solution.lessonDate || "Recently";
+
+        content.append(title, date);
+        row.append(icon, content);
+        card.appendChild(row);
+    });
 }
-window.addEventListener("storage", event => { if (!event.key || event.key === CUSTOM_NOTICES_KEY || event.key.includes("notification")) { renderNotices(); refreshStudentRecentActivity(); } });
-setInterval(() => { if (!document.hidden) { renderNotices(); refreshStudentRecentActivity(); } }, 5000);
+
+window.addEventListener("storage", event => {
+    if (
+        !event.key ||
+        event.key === CUSTOM_NOTICES_KEY ||
+        event.key === "llcc_class_lesson_plans_v1" ||
+        event.key.includes("notification")
+    ) {
+        renderNotices();
+        refreshStudentRecentActivity();
+    }
+});
+
+setInterval(() => {
+    if (!document.hidden) {
+        renderNotices();
+        refreshStudentRecentActivity();
+    }
+}, 5000);
 /* =========================================================
    CONTACT FORM
 ========================================================= */
