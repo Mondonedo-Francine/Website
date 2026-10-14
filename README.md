@@ -69,6 +69,28 @@ php artisan test
 - **Homework submissions:** students can submit homework to the database and see their own submissions; teachers can review submitted work. The server derives the student account from the signed-in session rather than accepting a student ID from the browser.
 - **Authorization:** the attendance endpoints require a teacher account. Homework submission creation requires a student account. Students only receive their own submissions.
 
+## Administrator dashboard
+
+The administrator dashboard is available at `/admin`. Public registration can only create student accounts. To bootstrap the first administrator on a trusted local development machine, run:
+
+```bash
+php artisan tinker
+```
+
+Then create the first admin account in Tinker (replace the sample details):
+
+```php
+App\Models\User::create([
+    'name' => 'Portal Administrator',
+    'email' => 'admin@llcc.edu.ph',
+    'phone' => '09170000001',
+    'password' => 'ReplaceWithAStrongPassword123!',
+    'role' => 'admin',
+]);
+```
+
+The User model hashes the password automatically. Use a unique email/phone and a strong private password; do not reuse the example. Sign in at `/portal` with the **Administrator** role. Successful admin login opens `/admin`, where you can create teacher accounts and see the teacher list. Do not expose the admin account or development environment publicly.
+
 ## Important limitations
 
 **This is still a prototype, not a production-ready student information system.**
