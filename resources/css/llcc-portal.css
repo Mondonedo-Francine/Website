@@ -1376,15 +1376,60 @@ td {
     }
 }
 \n
-/* Profile photo and cover personalization */
-.profile-cover{position:relative;isolation:isolate;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;min-height:220px;margin:0 0 25px;padding:28px 32px;border-radius:18px;overflow:hidden;background:radial-gradient(circle at 85% 10%,rgba(113,101,255,.8),transparent 32%),linear-gradient(120deg,#20136f,#5143d8 55%,#9c9af7);background-size:cover;background-position:center;color:#fff;box-shadow:0 14px 35px rgba(52,32,200,.16)}
-.profile-cover:before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(18,23,55,.35),rgba(18,23,55,.02))}
-.profile-cover-copy{max-width:620px}.profile-cover-kicker{font-size:11px;font-weight:800;letter-spacing:2px;opacity:.82}.profile-cover-copy h2{font-size:clamp(22px,3vw,32px);margin:8px 0;color:#fff}.profile-cover-copy p{font-size:14px;color:rgba(255,255,255,.88);margin:0}
-.profile-cover-button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:10px 16px;border:1px solid rgba(255,255,255,.65);border-radius:10px;background:rgba(255,255,255,.16);color:#fff;font-size:13px;font-weight:750;white-space:nowrap;cursor:pointer;backdrop-filter:blur(8px);transition:background .2s ease,transform .2s ease}
-.profile-cover-button:hover{background:rgba(255,255,255,.28);transform:translateY(-1px)}
-.profile-picture-toolbar{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px}
-.profile-picture-toolbar .secondary-btn,.profile-picture-toolbar .danger-btn{font-size:13px;padding:9px 12px;border-radius:9px}
-.profile-image-hint{font-size:11px!important;color:#8a94a6!important;margin:0 0 14px!important}
-.profile-avatar img,.avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
-.profile-avatar{overflow:hidden;flex-shrink:0}
-@media(max-width:760px){.profile-cover{min-height:190px;align-items:flex-start;flex-direction:column;padding:22px}.profile-cover-button{align-self:flex-start}.profile-grid{grid-template-columns:minmax(0,1fr)}}
+/* Profile personalization layout fix: scoped to avoid global portal styles overriding controls. */
+#profilePage .profile-cover {
+    position: relative !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
+    gap: 24px !important;
+    min-height: 220px !important;
+    margin: 0 0 26px !important;
+    padding: 30px 34px !important;
+    overflow: hidden !important;
+    border-radius: 18px !important;
+    color: #fff !important;
+    background: radial-gradient(circle at 82% 12%, rgba(159,150,255,.9), transparent 34%), linear-gradient(120deg,#20136f 0%,#5143d8 58%,#9c9af7 100%) !important;
+    background-position: center !important;
+    background-size: cover !important;
+    box-shadow: 0 14px 35px rgba(52,32,200,.16) !important;
+}
+#profilePage .profile-cover:before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    background: linear-gradient(90deg,rgba(18,23,55,.46),rgba(18,23,55,.06)) !important;
+}
+#profilePage .profile-cover-copy,
+#profilePage .profile-cover-button { position: relative !important; z-index: 1 !important; }
+#profilePage .profile-cover-copy { max-width: 620px !important; }
+#profilePage .profile-cover-kicker { display:block !important; color:rgba(255,255,255,.85) !important; font-size:11px !important; font-weight:800 !important; letter-spacing:2px !important; }
+#profilePage .profile-cover-copy h2 { margin:8px 0 !important; color:#fff !important; font-size:clamp(22px,3vw,32px) !important; line-height:1.2 !important; }
+#profilePage .profile-cover-copy p { margin:0 !important; color:rgba(255,255,255,.9) !important; font-size:14px !important; }
+#profilePage .profile-cover-button {
+    display: inline-flex !important; align-items:center !important; justify-content:center !important;
+    min-height:42px !important; padding:10px 16px !important; border:1px solid rgba(255,255,255,.7) !important;
+    border-radius:10px !important; background:rgba(255,255,255,.17) !important; color:#fff !important;
+    font-size:13px !important; font-weight:750 !important; white-space:nowrap !important; cursor:pointer !important;
+}
+#profilePage .profile-picture-toolbar {
+    display:flex !important; align-items:center !important; justify-content:center !important;
+    gap:10px !important; flex-wrap:wrap !important; width:100% !important; margin:0 0 10px !important;
+}
+#profilePage .profile-picture-toolbar .secondary-btn,
+#profilePage .profile-picture-toolbar .danger-btn {
+    position:static !important; display:inline-flex !important; align-items:center !important; justify-content:center !important;
+    min-height:42px !important; margin:0 !important; padding:10px 14px !important;
+    border-radius:9px !important; font-size:13px !important; line-height:1.2 !important; text-decoration:none !important;
+}
+#profilePage .profile-image-hint { margin:0 0 14px !important; color:#8a94a6 !important; font-size:11px !important; }
+#profilePage .profile-avatar { overflow:hidden !important; flex-shrink:0 !important; }
+#profilePage .profile-avatar img,
+#profilePage .avatar img { display:block !important; width:100% !important; height:100% !important; object-fit:cover !important; border-radius:inherit !important; }
+@media (max-width:760px) {
+    #profilePage .profile-cover { min-height:190px !important; align-items:flex-start !important; flex-direction:column !important; padding:22px !important; }
+    #profilePage .profile-cover-button { align-self:flex-start !important; }
+    #profilePage .profile-grid { grid-template-columns:minmax(0,1fr) !important; }
+}
