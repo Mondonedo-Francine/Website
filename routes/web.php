@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 
 Route::view('/portal', 'llcc-portal');
 
-Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
-Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:register');
+Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
 Route::get('/auth/user', function (Request $request) {
     if (! Auth::check()) {
         return response()->json(['message' => 'Unauthenticated.'], 401);
