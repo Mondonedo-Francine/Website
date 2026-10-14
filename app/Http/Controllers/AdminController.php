@@ -16,9 +16,6 @@ class AdminController extends Controller
         'BSIT 1-B',
         'BSIT 2-A',
         'BSIT 2-B',
-        'BIT2B',
-        'BIT AE3',
-        'BIT3AE',
     ];
 
     private const YEAR_LEVELS = [
