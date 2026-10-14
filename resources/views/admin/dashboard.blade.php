@@ -88,7 +88,7 @@
             <div class="empty">No student accounts yet. Register a student or seed demo students in your local development environment.</div>
         @else
             <div class="table-wrap"><table style="min-width:760px;">
-                <thead><tr><th>Student</th><th>Email</th><th>Year level</th><th>Section</th><th>Action</th></tr></thead>
+                <thead><tr><th>Student</th><th>Email</th><th colspan="3">Year level and section assignment</th></tr></thead>
                 <tbody>
                     @foreach ($students as $student)
                         <tr>
