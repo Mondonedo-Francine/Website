@@ -648,8 +648,20 @@ document.getElementById("profileForm").addEventListener("submit", function(event
 
     const currentUser = getCurrentUser();
 
+    // The avatar is also stored separately in browser storage. Carry it into
+    // the updated user before saving, so Save Changes cannot reset the avatar.
+    let savedPictureStore = {};
+    try {
+        savedPictureStore = JSON.parse(localStorage.getItem("llcc_profile_picture_by_user") || "{}");
+    } catch (error) {
+        savedPictureStore = {};
+    }
+    const savedPictureKey = String(currentUser.id || (currentUser.email || "").toLowerCase());
+    const savedProfilePicture = currentUser.profilePicture || savedPictureStore[savedPictureKey];
+
     const updatedUser = {
         ...currentUser,
+        ...(savedProfilePicture ? { profilePicture: savedProfilePicture } : {}),
         name: document.getElementById("profileFullName").value.trim(),
         email: document.getElementById("profileEmail").value.trim().toLowerCase(),
         phone: document.getElementById("profilePhone").value.trim()
