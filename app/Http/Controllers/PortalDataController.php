@@ -17,6 +17,7 @@ class PortalDataController extends Controller
         'BSIT 1-B' => ['Andrea Ramos', 'Daniel Torres', 'Ella Mendoza', 'Gabriel Lim', 'Isabelle Tan'],
         'BSIT 2-A' => ['Alyssa Dizon', 'Brandon Lee', 'Chloe Rivera', 'Dylan Bautista', 'Faith Navarro'],
         'BSIT 2-B' => ['Angela Villanueva', 'Christian Flores', 'Danica Reyes', 'Ethan Mendoza', 'Jasmine Cruz', 'Kyle Santos', 'Lance Garcia', 'Mia Torres'],
+        'BIT2B' => [],
     ];
 
     private function requireRole(Request $request, string $role): void
