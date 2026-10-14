@@ -468,9 +468,16 @@
                             <input id="teacherAttendanceDate" type="date" style="padding:10px;border:1px solid #ccd1dc;border-radius:7px;">
                             <button type="button" class="primary-btn" id="saveClassAttendance">Save Attendance</button>
                         </div>
-                        <div id="attendanceSaveMessage" class="contact-success"></div>
-                        <div style="overflow-x:auto;"><table style="min-width:580px;"><thead><tr><th>#</th><th>Student Name</th><th>Student ID</th><th>Attendance Status</th></tr></thead><tbody id="teacherAttendanceRoster"></tbody></table></div>
-                        <p style="font-size:12px;color:var(--muted);margin-top:14px;">Attendance records are saved in this browser for this demo.</p>
+                        <div class="attendance-summary-grid" aria-label="Attendance summary">
+                            <article class="attendance-summary-card total"><span>Total students</span><strong id="attendanceTotalStudents">0</strong></article>
+                            <article class="attendance-summary-card present"><span>Present</span><strong id="attendancePresentCount">0</strong></article>
+                            <article class="attendance-summary-card absent"><span>Absent</span><strong id="attendanceAbsentCount">0</strong></article>
+                            <article class="attendance-summary-card late"><span>Late</span><strong id="attendanceLateCount">0</strong></article>
+                        </div>
+                        <div id="attendanceSaveMessage" class="contact-success" role="status" aria-live="polite"></div>
+                        <div style="overflow-x:auto;"><table class="attendance-table" style="min-width:580px;"><thead><tr><th>#</th><th>Student Name</th><th>Student ID</th><th>Attendance Status</th></tr></thead><tbody id="teacherAttendanceRoster"></tbody></table></div>
+                        <div class="attendance-history"><h3>Recent save history</h3><ul id="attendanceHistoryList"><li class="attendance-history-empty">No saved attendance history yet.</li></ul></div>
+                        <p style="font-size:12px;color:var(--muted);margin-top:14px;">Records and recent save history are stored in this browser for this demo.</p>
                     </div>
                 </div>
                 <div id="studentAttendanceView">
