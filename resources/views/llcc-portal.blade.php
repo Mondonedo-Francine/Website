@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>LLCC Portal - Lapu-Lapu City College</title>
 
@@ -122,14 +123,7 @@
                         >
                     </div>
 
-                    <div class="form-group">
-                        <label for="signupRole">Account Type</label>
-                        <select id="signupRole" required>
-                            <option value="">Select account type</option>
-                            <option value="student">Student</option>
-                            <option value="teacher">Teacher</option>
-                        </select>
-                    </div>
+                    <p class="auth-description">New registrations are student accounts. Teacher accounts must be created by an administrator.</p>
 
                     <div class="form-group">
                         <label for="signupPassword">Password</label>
@@ -149,7 +143,8 @@
                             type="password"
                             id="signupConfirmPassword"
                             placeholder="Confirm your password"
-                            minlength="5"
+                            minlength="8"
+                            autocomplete="new-password"
                             required
                         >
                     </div>
