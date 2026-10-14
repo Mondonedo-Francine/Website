@@ -123,6 +123,9 @@ public function register(Request $request): JsonResponse
             'phone' => $user->phone,
             'role' => $user->role,
             'class_name' => $user->class_name,
+            'profile_picture_url' => $user->profile_picture
+                ? Storage::disk('public')->url($user->profile_picture)
+                : null,
         ];
     }
 }
