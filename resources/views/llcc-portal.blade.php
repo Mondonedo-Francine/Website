@@ -307,59 +307,37 @@
                 </div>
 
                 <div class="dashboard-grid">
-
                     <div class="card">
                         <div class="card-header">
                             <h3>Recent Activity</h3>
                             <a href="#" data-open-page="homework">View All</a>
                         </div>
-
                         <p class="student-recent-activity-empty">Loading recent activity…</p>
                     </div>
-                        </div>
 
-                        <div class="activity-item">
-                            <div class="activity-icon">★</div>
-                            <div>
-                                <strong>English result published</strong>
-                                <span>Yesterday, 2:00 PM</span>
-                            </div>
-                        </div>
-
-                        <div class="activity-item">
-                            <div class="activity-icon">◌</div>
-                            <div>
-                                <strong>New notice posted</strong>
-                                <span>2 days ago</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
+                    <div class="card" id="dashboardLatestNoticesCard">
                         <div class="card-header">
                             <h3>Latest Notices</h3>
                             <a href="#" data-open-page="notices">View All</a>
                         </div>
-
-                        <div class="notice-item">
-                            <strong>Monthly examination schedule</strong>
-                            <p>The examination routine has been updated.</p>
-                            <span class="notice-date">September 12, 2026</span>
-                        </div>
-
-                        <div class="notice-item">
-                            <strong>Assignment submission reminder</strong>
-                            <p>Please submit all pending assignments.</p>
-                            <span class="notice-date">September 10, 2026</span>
-                        </div>
-
-                        <div class="notice-item">
-                            <strong>Publication holiday notice</strong>
-                            <p>The office will remain closed on Friday.</p>
-                            <span class="notice-date">September 8, 2026</span>
+                        <div id="dashboardLatestNotices">
+                            <div class="notice-item">
+                                <strong>Monthly examination schedule</strong>
+                                <p>The examination routine has been updated.</p>
+                                <span class="notice-date">September 12, 2026</span>
+                            </div>
+                            <div class="notice-item">
+                                <strong>Assignment submission reminder</strong>
+                                <p>Please submit all pending assignments.</p>
+                                <span class="notice-date">September 10, 2026</span>
+                            </div>
+                            <div class="notice-item">
+                                <strong>Publication holiday notice</strong>
+                                <p>The office will remain closed on Friday.</p>
+                                <span class="notice-date">September 8, 2026</span>
+                            </div>
                         </div>
                     </div>
-
                 </div>
             </section>
 
