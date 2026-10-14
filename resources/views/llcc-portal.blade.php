@@ -432,6 +432,31 @@
                                     <input type="text" id="profileRoleInput" readonly>
                                 </div>
 
+                                <div class="form-group" id="studentYearLevelGroup">
+                                    <label for="profileYearLevel">Year Level</label>
+                                    <select id="profileYearLevel">
+                                        <option value="">Select year level</option>
+                                        <option value="1st Year">1st Year</option>
+                                        <option value="2nd Year">2nd Year</option>
+                                        <option value="3rd Year">3rd Year</option>
+                                        <option value="4th Year">4th Year</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group" id="studentClassNameGroup">
+                                    <label for="profileClassName">Section / Class</label>
+                                    <select id="profileClassName">
+                                        <option value="">Select section</option>
+                                        <option value="BSIT 1-A">BSIT 1-A</option>
+                                        <option value="BSIT 1-B">BSIT 1-B</option>
+                                        <option value="BSIT 2-A">BSIT 2-A</option>
+                                        <option value="BSIT 2-B">BSIT 2-B</option>
+                                        <option value="BIT2B">BIT2B</option>
+                                        <option value="BIT AE3">BIT AE3</option>
+                                        <option value="BIT3AE">BIT3AE</option>
+                                    </select>
+                                </div>
+
                             </div>
 
                             <div class="form-actions">
