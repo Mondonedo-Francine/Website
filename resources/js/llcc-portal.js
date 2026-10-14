@@ -855,6 +855,16 @@ function renderStudentHomeworkResults(submissions = window.portalHomeworkSubmiss
             cell.textContent = value;
             row.appendChild(cell);
         });
+
+        const actionCell = document.createElement("td");
+        actionCell.className = "homework-action-cell";
+        const viewButton = document.createElement("button");
+        viewButton.type = "button";
+        viewButton.className = "secondary-btn homework-view-btn";
+        viewButton.textContent = "View";
+        viewButton.addEventListener("click", () => window.viewHomework?.(homework.id, row));
+        actionCell.appendChild(viewButton);
+        row.appendChild(actionCell);
         body.appendChild(row);
     });
 }
@@ -945,7 +955,7 @@ async function renderCustomHomework() {
         renderStudentHomeworkResults(window.portalHomeworkSubmissions);
         tableBody.innerHTML = "";
         if (!window.portalHomeworkSubmissions.length) {
-            tableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><h3>No submissions yet</h3><p>Your database-backed homework submissions will appear here.</p></div></td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><h3>No submissions yet</h3><p>Your database-backed homework submissions will appear here.</p></div></td></tr>';
             return;
         }
         const isTeacher = getCurrentUser()?.role === "teacher";
@@ -964,18 +974,11 @@ async function renderCustomHomework() {
             badge.className = "badge success";
             badge.textContent = homework.status || "Submitted";
             statusCell.appendChild(badge);
-            const actionCell = document.createElement("td");
-            const viewButton = document.createElement("button");
-            viewButton.type = "button";
-            viewButton.className = "secondary-btn homework-view-btn";
-            viewButton.dataset.homeworkId = String(homework.id);
-            viewButton.textContent = "View";
-            actionCell.appendChild(viewButton);
-            row.append(subjectCell, titleCell, dateCell, statusCell, actionCell);
+            row.append(subjectCell, titleCell, dateCell, statusCell);
             tableBody.appendChild(row);
         });
     } catch (error) {
-        tableBody.innerHTML = '<tr><td colspan="5">Could not load submissions. Please refresh and sign in again.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="4">Could not load submissions. Please refresh and sign in again.</td></tr>';
     }
 }
 
