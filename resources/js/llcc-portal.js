@@ -246,6 +246,11 @@ function showApplication(user) {
 function updateUserInterface(user) {
     const addHomeworkButton = document.getElementById("addHomeworkBtn");
     if (addHomeworkButton) addHomeworkButton.classList.toggle("hidden", !user || user.role !== "student");
+    const addNoticeButton = document.getElementById("addNoticeBtn");
+    const noticeFormCard = document.getElementById("noticeFormCard");
+    const isTeacher = !!user && user.role === "teacher";
+    if (addNoticeButton) addNoticeButton.classList.toggle("hidden", !isTeacher);
+    if (noticeFormCard && !isTeacher) noticeFormCard.classList.add("hidden");
     const homeworkNav = document.querySelector('.nav-item[data-page="homework"], .nav-item[data-page="schedule"]');
     if (homeworkNav) {
         homeworkNav.dataset.page = user && user.role === "teacher" ? "schedule" : "homework";
@@ -1003,16 +1008,21 @@ const defaultNotices = [
     }
 ];
 
-document.getElementById("addNoticeBtn").addEventListener("click", function() {
-    document.getElementById("noticeFormCard").classList.remove("hidden");
+document.getElementById("addNoticeBtn")?.addEventListener("click", function() {
+    if (getCurrentUser()?.role !== "teacher") return;
+    document.getElementById("noticeFormCard")?.classList.remove("hidden");
 });
 
 document.getElementById("cancelNoticeBtn").addEventListener("click", function() {
     document.getElementById("noticeFormCard").classList.add("hidden");
 });
 
-document.getElementById("noticeForm").addEventListener("submit", function(event) {
+document.getElementById("noticeForm")?.addEventListener("submit", function(event) {
     event.preventDefault();
+    if (getCurrentUser()?.role !== "teacher") {
+        document.getElementById("noticeFormCard")?.classList.add("hidden");
+        return;
+    }
 
     const notice = {
         id: Date.now(),
@@ -1037,12 +1047,18 @@ document.getElementById("noticeForm").addEventListener("submit", function(event)
 });
 
 function renderNotices() {
+    const currentUser = getCurrentUser();
+    const addNoticeButton = document.getElementById("addNoticeBtn");
+    if (addNoticeButton) addNoticeButton.classList.toggle("hidden", currentUser?.role !== "teacher");
+    const formCard = document.getElementById("noticeFormCard");
+    if (formCard && currentUser?.role !== "teacher") formCard.classList.add("hidden");
     const customNotices = JSON.parse(
         localStorage.getItem(CUSTOM_NOTICES_KEY) || "[]"
     );
 
     const allNotices = [...customNotices, ...defaultNotices];
     const container = document.getElementById("noticesContainer");
+    if (!container) return;
 
     container.innerHTML = "";
 
@@ -1078,6 +1094,28 @@ if (legacyContactForm) {
     });
 }
 
+/* Month/day filtering for the student attendance table. */
+(function initStudentAttendanceFilters() {
+    const month = document.getElementById("attendanceMonth");
+    const day = document.getElementById("attendanceDay");
+    const body = month?.closest(".table-card")?.querySelector("tbody");
+    if (!month || !day || !body) return;
+    const rows = () => Array.from(body.querySelectorAll("tr")).filter(row => row.cells.length >= 4);
+    const dateOf = row => { const d = new Date(row.cells[0]?.textContent.trim() || ""); return Number.isNaN(d.getTime()) ? null : d; };
+    const monthOf = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+    function updateDays() {
+        const dates = rows().map(dateOf).filter(Boolean).filter(d => month.value === "all" || monthOf(d) === month.value);
+        const selected = day.value;
+        day.replaceChildren(new Option("All days", "all"));
+        [...new Set(dates.map(d => d.getDate()))].sort((a,b) => a-b).forEach(d => day.add(new Option(String(d), String(d))));
+        day.disabled = month.value === "all" || dates.length === 0;
+        if (![...day.options].some(o => o.value === selected)) day.value = "all";
+    }
+    function apply() { rows().forEach(row => { const d = dateOf(row); row.hidden = !(d && (month.value === "all" || monthOf(d) === month.value) && (day.value === "all" || d.getDate() === Number(day.value))); }); }
+    month.addEventListener("change", () => { updateDays(); apply(); });
+    day.addEventListener("change", apply);
+    updateDays(); apply();
+})();
 /* =========================================================
    LOGOUT
 ========================================================= */
