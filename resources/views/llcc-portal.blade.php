@@ -501,7 +501,7 @@
                                 <option value="2026-08">August 2026</option>
                                 <option value="2026-07">July 2026</option>
                             </select>
-                            <select id="attendanceDay" aria-label="Select day" style="padding:9px;border:1px solid #ddd;border-radius:6px;" disabled>
+                            <select id="attendanceDay" aria-label="Filter attendance by day" style="padding:9px;border:1px solid #ddd;border-radius:6px;">
                                 <option value="all">All days</option>
                             </select>
                         </div>
