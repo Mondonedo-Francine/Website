@@ -1303,11 +1303,11 @@ function addHomeworkDetails() {
         const style = document.createElement("style");
         style.id = "homeworkReviewPolishStyles";
         style.textContent = `
-            .homework-action-cell { min-width: 230px; }
-            .homework-action-cell > .homework-view-btn { display:block; margin:0 0 10px; white-space:nowrap; }
-            .homework-status-control { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+            .homework-action-cell { min-width: 330px; }
+            .homework-action-cell > .homework-view-btn { display:inline-flex; align-items:center; justify-content:center; margin:0 10px 0 0; white-space:nowrap; }
+            .homework-status-control { display:inline-flex; align-items:center; gap:9px; flex-wrap:wrap; vertical-align:middle; }
             .homework-status-label { color:var(--muted,#64748b); font-size:12px; font-weight:700; }
-            .homework-status-select { min-width:130px; max-width:100%; border:1px solid #cbd5e1; border-radius:9px; padding:9px 30px 9px 11px; font:inherit; font-size:13px; font-weight:700; cursor:pointer; background:#f8fafc; color:#334155; }
+            .homework-status-select { min-width:145px; max-width:100%; border:1px solid #cbd5e1; border-radius:999px; padding:10px 32px 10px 14px; font:inherit; font-size:13px; font-weight:700; cursor:pointer; background:#f8fafc; color:#334155; box-shadow:0 1px 2px rgba(15,23,42,.05); }
             .homework-status-select[data-status="turned-in"] { background:#eff6ff; border-color:#bfdbfe; color:#1d4ed8; }
             .homework-status-select[data-status="done"] { background:#ecfdf5; border-color:#a7f3d0; color:#047857; }
             .homework-status-select[data-status="incomplete"] { background:#fff7ed; border-color:#fed7aa; color:#c2410c; }
@@ -1316,7 +1316,8 @@ function addHomeworkDetails() {
             #homeworkDetailsBox .homework-details-content { width:min(680px,100%); max-height:calc(100vh - 44px); overflow-y:auto; margin:auto; padding:28px; border:1px solid #e2e8f0; border-radius:18px; background:#fff; color:#1e293b; box-shadow:0 24px 70px rgba(15,23,42,.25); }
             #homeworkDetailsBox #homeworkDetailsTitle { margin:0 0 18px; font-size:23px; }
             #homeworkDetailsBox .form-actions { display:flex; justify-content:flex-end; margin-top:22px; }
-            @media(max-width:640px) { #homeworkDetailsBox .homework-details-content { padding:20px; } .homework-action-cell { min-width:190px; } }
+            @media(max-width:900px) { .homework-action-cell { min-width:280px; } .homework-action-cell > .homework-view-btn { margin-bottom:8px; } .homework-status-control { display:flex; } }
+            @media(max-width:640px) { #homeworkDetailsBox .homework-details-content { padding:20px; } .homework-action-cell { min-width:240px; } }
         `;
         document.head.appendChild(style);
     }
