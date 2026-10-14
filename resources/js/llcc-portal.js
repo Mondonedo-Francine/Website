@@ -309,13 +309,6 @@ function updateUserInterface(user) {
 /* =========================================================
    TEACHER CLASS ATTENDANCE
 ========================================================= */
-const teacherClasses = {
-    "BSIT 1-A": ["Althea Cruz", "Joshua Garcia", "Mika Santos", "Nathan Reyes", "Sofia Flores"],
-    "BSIT 1-B": ["Andrea Ramos", "Daniel Torres", "Ella Mendoza", "Gabriel Lim", "Isabelle Tan"],
-    "BSIT 2-A": ["Alyssa Dizon", "Brandon Lee", "Chloe Rivera", "Dylan Bautista", "Faith Navarro"],
-    "BSIT 2-B": ["Angela Villanueva", "Christian Flores", "Danica Reyes", "Ethan Mendoza", "Jasmine Cruz", "Kyle Santos", "Lance Garcia", "Mia Torres"]
-};
-
 /* =========================================================
    ROLE-SPECIFIC TEACHER DASHBOARD SUMMARY + CALENDAR
 ========================================================= */
@@ -335,7 +328,6 @@ function getTeacherScheduleRowsForDay(dayCode) {
 
 function renderTeacherDashboard(user) {
     const isTeacher = Boolean(user && user.role === "teacher");
-    const studentCount = Object.values(teacherClasses).reduce((total, roster) => total + roster.length, 0);
     const dayCodes = ["S", "M", "T", "W", "TH", "F", "SA"];
     const todayCode = dayCodes[new Date().getDay()];
     const studentLabel = document.getElementById("attendanceStatLabel");
@@ -347,7 +339,21 @@ function renderTeacherDashboard(user) {
     if (classCountLabel) classCountLabel.textContent = isTeacher ? "Classes Today" : "Completed Courses";
 
     const studentCountValue = document.getElementById("attendanceStat");
-    if (studentCountValue) studentCountValue.textContent = isTeacher ? String(studentCount) : "92%";
+    if (studentCountValue) studentCountValue.textContent = isTeacher ? "…" : "92%";
+
+    if (isTeacher && studentCountValue) {
+        portalApi("/api/teacher/dashboard-stats")
+            .then(data => {
+                const currentUser = getCurrentUser();
+                if (currentUser && currentUser.role === "teacher") {
+                    studentCountValue.textContent = String(data.students_across_classes ?? 0);
+                }
+            })
+            .catch(error => {
+                studentCountValue.textContent = "—";
+                console.warn("Teacher dashboard statistics could not be loaded.", error);
+            });
+    }
 
     const classesTodayValue = document.getElementById("classesTodayStat");
     if (classesTodayValue) {
@@ -425,6 +431,70 @@ function localDateInputValue() {
     return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join("-");
 }
 
+async function renderStudentAttendance(user) {
+    const body = document.getElementById("studentAttendanceRecords");
+    const message = document.getElementById("studentAttendanceMessage");
+    const monthFilter = document.getElementById("attendanceMonth");
+    if (!body || !message || !monthFilter) return;
+
+    const renderRows = records => {
+        const month = monthFilter.value;
+        const filtered = records.filter(record => month === "all" || record.date.slice(0, 7) === month);
+        body.replaceChildren();
+        if (!filtered.length) {
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+            cell.colSpan = 3;
+            cell.textContent = records.length ? "No attendance records for this month." : "No attendance records have been saved for your account yet.";
+            row.appendChild(cell);
+            body.appendChild(row);
+            return;
+        }
+        filtered.forEach(record => {
+            const row = document.createElement("tr");
+            const dateCell = document.createElement("td");
+            dateCell.textContent = new Date(record.date + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+            const classCell = document.createElement("td");
+            classCell.textContent = record.class_name || user.class_name || "—";
+            const statusCell = document.createElement("td");
+            const badge = document.createElement("span");
+            badge.className = "badge " + (record.status === "Present" ? "success" : record.status === "Absent" ? "danger" : "info");
+            badge.textContent = record.status;
+            statusCell.appendChild(badge);
+            row.append(dateCell, classCell, statusCell);
+            body.appendChild(row);
+        });
+    };
+
+    body.innerHTML = '<tr><td colspan="3">Loading attendance records...</td></tr>';
+    message.textContent = "Loading your saved attendance...";
+    try {
+        const data = await portalApi("/api/attendance/student");
+        const summary = data.summary || {};
+        document.getElementById("studentPresentDays").textContent = summary.present_days ?? 0;
+        document.getElementById("studentAbsentDays").textContent = summary.absent_days ?? 0;
+        document.getElementById("studentAttendancePercentage").textContent = (summary.percentage ?? 0) + "%";
+        document.getElementById("studentTotalClasses").textContent = summary.total_classes ?? 0;
+
+        const records = data.records || [];
+        const months = [...new Set(records.map(record => record.date.slice(0, 7)))].sort().reverse();
+        const previous = monthFilter.value;
+        monthFilter.replaceChildren(new Option("All months", "all"));
+        months.forEach(month => {
+            const [year, monthNumber] = month.split("-");
+            const date = new Date(Number(year), Number(monthNumber) - 1, 1);
+            monthFilter.add(new Option(date.toLocaleDateString("en-US", { month: "long", year: "numeric" }), month));
+        });
+        monthFilter.value = months.includes(previous) ? previous : "all";
+        renderRows(records);
+        message.textContent = records.length ? "Showing attendance records saved by your teacher." : "No attendance records are available yet. Your teacher must save attendance for your class first.";
+        monthFilter.onchange = () => renderRows(records);
+    } catch (error) {
+        body.innerHTML = '<tr><td colspan="3">Could not load attendance records.</td></tr>';
+        message.textContent = error.message || "Could not load your attendance. Please refresh and sign in again.";
+    }
+}
+
 async function setupTeacherAttendance(user) {
     const teacherView = document.getElementById("teacherAttendanceView");
     const studentView = document.getElementById("studentAttendanceView");
@@ -432,7 +502,10 @@ async function setupTeacherAttendance(user) {
     const isTeacher = user && user.role === "teacher";
     teacherView.classList.toggle("hidden", !isTeacher);
     studentView.classList.toggle("hidden", isTeacher);
-    if (!isTeacher) return;
+    if (!isTeacher) {
+        await renderStudentAttendance(user);
+        return;
+    }
 
     const list = document.getElementById("attendanceClassList");
     list.innerHTML = '<p>Loading your classes...</p>';
@@ -1569,15 +1642,15 @@ function initTeacherMessages() {
         const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-            if (response.status === 401) {
-                throw new Error('Your session has expired. Please sign in again.');
-            }
-
-            if (response.status === 419) {
-                throw new Error('Your security token expired. Refresh the page and sign in again.');
-            }
-
-            throw new Error(data.message || 'The messaging request failed.');
+            const error = new Error(
+                response.status === 401
+                    ? 'Your session has expired. Please sign in again.'
+                    : response.status === 419
+                        ? 'Your security token expired. Refresh the page and sign in again.'
+                        : (data.message || 'The messaging request failed.')
+            );
+            error.status = response.status;
+            throw error;
         }
 
         return data;
@@ -1649,6 +1722,24 @@ function initTeacherMessages() {
         messages.scrollTop = messages.scrollHeight;
     }
 
+    
+function studentDetails(person) {
+    if (person.role !== 'student') return '';
+
+    const details = [];
+
+    if (person.year_level) {
+        details.push('Year level: ' + esc(person.year_level));
+    }
+
+    if (person.class_name) {
+        details.push('Section: ' + esc(person.class_name));
+    }
+
+    return details.join(' · ');
+}
+
+
     function renderList() {
         const query = (search?.value || '').trim().toLowerCase();
 
@@ -1671,6 +1762,19 @@ function initTeacherMessages() {
                     ? 'Teacher'
                     : 'Student';
 
+                    const academicDetails = studentDetails(person);
+                    header.innerHTML =
+    '<div class="teacher-avatar">' +
+        esc(getInitialsSafe(person.name)) +
+    '</div>' +
+    '<div><h3>' + esc(person.name) + '</h3>' +
+    (academicDetails
+        ? '<p>' + academicDetails + '</p>'
+        : '') +
+    '<p>' + roleLabel +
+        ' · <span style="color:#16804a">🔒 Private direct message</span>' +
+    '</p></div>';
+
                 return (
                     '<button type="button" class="teacher-option ' +
                         (selected && String(selected.id) === id ? 'active' : '') +
@@ -1679,17 +1783,26 @@ function initTeacherMessages() {
                             esc(getInitialsSafe(person.name)) +
                         '</span>' +
                         '<span>' +
-                            '<strong>' + esc(person.name) + '</strong>' +
-                            '<small>' + roleLabel + ' · ' +
-                                esc(last) +
-                            '</small>' +
-                        '</span>' +
+    '<strong>' + esc(person.name) + '</strong>' +
+    (academicDetails
+        ? '<small>' + academicDetails + '</small>'
+        : '') +
+    '<small>' + roleLabel + ' · ' +
+        esc(last) +
+    '</small>' +
+'</span>' +
                     '</button>'
                 );
             }).join('')
             : '<div class="empty-state" style="padding:22px">' +
-                'No other student or teacher accounts are registered in this database yet. Register a second account with the Student or Teacher role, then refresh this page.' +
+                (query
+                    ? 'No contacts match your search. Try another name, email, or role.'
+                    : 'No other student or teacher accounts are available for messaging yet.') +
               '</div>';
+
+        list.querySelectorAll('[data-retry-contacts]').forEach(button => {
+            button.addEventListener('click', () => loadContacts());
+        });
 
         list.querySelectorAll('[data-person]').forEach(button => {
             button.addEventListener('click', () => {
@@ -1726,36 +1839,55 @@ function initTeacherMessages() {
     }
 
     async function loadContacts() {
-        const data = await api('/api/messages/contacts');
+        list.innerHTML = '<div class="empty-state" style="padding:22px">Loading contacts…</div>';
 
-        people = (data.contacts || []).map(person => ({
-            ...person,
-            id: String(person.id),
-            name: person.name || person.email || 'User',
-            email: person.email || '',
-            role: String(person.role || '').toLowerCase()
-        }));
+        try {
+            const data = await api('/api/messages/contacts');
 
-        if (selected) {
-            selected = people.find(
-                person => String(person.id) === String(selected.id)
-            ) || null;
-        }
+            people = (Array.isArray(data.contacts) ? data.contacts : [])
+                .filter(person => person && person.id != null && String(person.id) !== currentId)
+                .map(person => ({
+                    ...person,
+                    id: String(person.id),
+                    name: person.name || person.email || 'User',
+                    email: person.email || '',
+                    role: String(person.role || '').toLowerCase()
+                }));
 
-        renderList();
+            if (selected) {
+                selected = people.find(
+                    person => String(person.id) === String(selected.id)
+                ) || null;
+            }
 
-        if (selected) {
-            renderHeader(selected);
-        } else if (people.length) {
-            await choosePerson(people[0]);
-        } else {
-            renderHeader(null);
-            renderMessages();
+            renderList();
+
+            if (selected) {
+                renderHeader(selected);
+            } else if (people.length) {
+                await choosePerson(people[0]);
+            } else {
+                renderHeader(null);
+                renderMessages();
+            }
+        } catch (error) {
+            list.innerHTML =
+                '<div class="empty-state" style="padding:22px">' +
+                    '<h3>Could not load contacts</h3>' +
+                    '<p>' + esc(error.message) + '</p>' +
+                    '<button type="button" class="primary-btn" data-retry-contacts style="margin-top:12px">Try again</button>' +
+                '</div>';
+            list.querySelector('[data-retry-contacts]')?.addEventListener('click', loadContacts);
+            throw error;
         }
     }
 
-    async function loadThread() {
-        if (!selected || !currentId || loadingThread) return;
+    async function loadThread(force = false) {
+        // A polling request can already be in flight when the user sends a
+        // message. Allow the post-send refresh to supersede that request so
+        // the newly saved message appears immediately instead of waiting for
+        // the next four-second poll.
+        if (!selected || !currentId || (loadingThread && !force)) return;
 
         const selectedId = String(selected.id);
         const requestId = ++threadRequestId;
@@ -1813,9 +1945,17 @@ function initTeacherMessages() {
     }
 
     async function refreshForCurrentUser() {
-        current = typeof getCurrentUser === 'function'
-            ? getCurrentUser()
-            : null;
+        // Ask Laravel which account owns this session. Browser storage can
+        // contain stale account data after switching users or opening another tab.
+        try {
+            const session = await api('/auth/user');
+            current = session.user || null;
+            if (current && typeof saveCurrentUser === 'function') {
+                saveCurrentUser(current);
+            }
+        } catch (error) {
+            current = null;
+        }
 
         // Restore the authenticated Laravel session if browser storage is empty or stale.
         if (!current || !getId(current)) {
@@ -1842,7 +1982,11 @@ function initTeacherMessages() {
             input.value = '';
             input.disabled = true;
             send.disabled = true;
-            list.innerHTML = '';
+            list.innerHTML =
+                '<div class="empty-state" style="padding:22px">' +
+                    '<h3>Sign in to load contacts</h3>' +
+                    '<p>Your Laravel session could not be verified. Please sign in again, then reopen Messages.</p>' +
+                '</div>';
 
             renderHeader(null);
             renderMessages([]);
@@ -1855,12 +1999,14 @@ function initTeacherMessages() {
         if (accountChanged) {
             selected = null;
             lastMessages = {};
+            if (search) search.value = '';
         }
 
         try {
             await loadContacts();
         } catch (error) {
-            showError(error.message);
+            // loadContacts now shows the failure directly in the contact list.
+            console.warn('Messaging contacts could not be loaded:', error.message);
         }
     }
 
@@ -1893,7 +2039,7 @@ function initTeacherMessages() {
 
             input.value = '';
 
-            await loadThread();
+            await loadThread(true);
             await loadContacts();
 
             input.focus();
@@ -1921,14 +2067,15 @@ function initTeacherMessages() {
     refreshForCurrentUser();
 }
 
+
 document.addEventListener('DOMContentLoaded', () => {
-    addProfileControls();
     addHomeworkDetails();
     makeHomeworkButtons();
     renderCustomHomework();
     addSolutions();
     initTeacherMessages();
 });
+
 
 (function initClassLessonPlans(){
   const storageKey='llcc_class_lesson_plans_v1';

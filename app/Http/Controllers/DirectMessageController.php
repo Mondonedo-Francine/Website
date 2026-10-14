@@ -30,7 +30,14 @@ class DirectMessageController extends Controller
             ->whereKeyNot($user->id)
             ->whereRaw('LOWER(role) IN (?, ?)', ['student', 'teacher'])
             ->orderBy('name')
-            ->get(['id', 'name', 'email', 'role', 'class_name']);
+            ->get([
+    'id',
+    'name',
+    'email',
+    'role',
+    'year_level',
+    'class_name',
+]);
 
         return response()->json(['contacts' => $contacts]);
     }

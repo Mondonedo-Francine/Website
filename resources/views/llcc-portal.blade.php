@@ -483,29 +483,11 @@
                     </div>
                 </div>
                 <div id="studentAttendanceView">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">✓</div>
-                        <h3>46</h3>
-                        <p>Present Days</p>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">×</div>
-                        <h3>4</h3>
-                        <p>Absent Days</p>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">%</div>
-                        <h3>92%</h3>
-                        <p>Attendance Percentage</p>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">▣</div>
-                        <h3>50</h3>
-                        <p>Total Classes</p>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-icon">✓</div><h3 id="studentPresentDays">0</h3><p>Present Days</p></div>
+                        <div class="stat-card"><div class="stat-icon">×</div><h3 id="studentAbsentDays">0</h3><p>Absent Days</p></div>
+                        <div class="stat-card"><div class="stat-icon">%</div><h3 id="studentAttendancePercentage">0%</h3><p>Attendance Percentage</p></div>
+                        <div class="stat-card"><div class="stat-icon">▣</div><h3 id="studentTotalClasses">0</h3><p>Total Classes</p></div>
                     </div>
                 </div>
 
@@ -514,51 +496,40 @@
                         <h3>Attendance Details</h3>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                             <select id="attendanceMonth" aria-label="Select month" style="padding:9px;border:1px solid #ddd;border-radius:6px;">
-                                <option value="all">All months</option><option value="2026-09">September 2026</option><option value="2026-08">August 2026</option><option value="2026-07">July 2026</option>
+                                <option value="all">All months</option>
+                                <option value="2026-09">September 2026</option>
+                                <option value="2026-08">August 2026</option>
+                                <option value="2026-07">July 2026</option>
                             </select>
-                            <select id="attendanceDay" aria-label="Select day" style="padding:9px;border:1px solid #ddd;border-radius:6px;" disabled><option value="all">All days</option></select>
+                            <select id="attendanceDay" aria-label="Select day" style="padding:9px;border:1px solid #ddd;border-radius:6px;" disabled>
+                                <option value="all">All days</option>
+                            </select>
                         </div>
                     </div>
 
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Subject</th>
-                                <th>Class Time</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>September 16, 2026</td>
-                                <td>Mathematics</td>
-                                <td>9:00 AM</td>
-                                <td><span class="badge success">Present</span></td>
-                            </tr>
-                            <tr>
-                                <td>September 15, 2026</td>
-                                <td>English</td>
-                                <td>10:00 AM</td>
-                                <td><span class="badge success">Present</span></td>
-                            </tr>
-                            <tr>
-                                <td>September 14, 2026</td>
-                                <td>Science</td>
-                                <td>11:00 AM</td>
-                                <td><span class="badge danger">Absent</span></td>
-                            </tr>
-                            <tr>
-                                <td>September 13, 2026</td>
-                                <td>Computer</td>
-                                <td>12:00 PM</td>
-                                <td><span class="badge success">Present</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                    <div id="studentAttendanceMessage" role="status" style="padding:12px 0;color:var(--muted);">
+                        Loading attendance records...
+                    </div>
+
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Class / Section</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentAttendanceRecords">
+                                <tr>
+                                    <td colspan="3">Loading attendance records...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </section>
+
 
             <!-- HOMEWORK PAGE -->
             <section id="homeworkPage" class="page">

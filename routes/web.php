@@ -12,6 +12,7 @@ Route::view('/portal', 'llcc-portal');
 
 Route::get('/admin', [AdminController::class, 'index']);
 Route::post('/admin/teachers', [AdminController::class, 'storeTeacher'])->middleware('throttle:10,1');
+Route::put('/admin/students/{student}/class', [AdminController::class, 'updateStudentClass'])->middleware('throttle:30,1');
 Route::post('/admin/logout', [AdminController::class, 'logout']);
 
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
@@ -29,6 +30,8 @@ Route::post('/auth/logout', [AuthController::class, 'logout']);
 Route::middleware('auth')->prefix('api')->group(function () {
     Route::post('/profile/picture', [ProfilePictureController::class, 'store']);
     Route::delete('/profile/picture', [ProfilePictureController::class, 'destroy']);
+    Route::get('/teacher/dashboard-stats', [PortalDataController::class, 'teacherDashboardStats']);
+    Route::get('/attendance/student', [PortalDataController::class, 'studentAttendance']);
     Route::get('/attendance/classes', [PortalDataController::class, 'attendanceClasses']);
     Route::get('/attendance', [PortalDataController::class, 'attendance']);
     Route::put('/attendance', [PortalDataController::class, 'saveAttendance']);
