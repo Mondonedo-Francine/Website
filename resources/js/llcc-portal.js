@@ -1,4 +1,4 @@
-/* ===== Original inline script block 1 ===== */
+﻿/* ===== Original inline script block 1 ===== */
 
 /* =========================================================
    STORAGE AND DEFAULT DATA
@@ -255,7 +255,7 @@ function updateUserInterface(user) {
     const homeworkNav = document.querySelector('.nav-item[data-page="homework"], .nav-item[data-page="schedule"]');
     if (homeworkNav) {
         homeworkNav.dataset.page = user && user.role === "teacher" ? "schedule" : "homework";
-        homeworkNav.innerHTML = '<span class="nav-icon">' + (user && user.role === "teacher" ? '▦' : '▤') + '</span>' + (user && user.role === "teacher" ? 'Schedule' : 'Homework');
+        homeworkNav.innerHTML = '<span class="nav-icon">' + (user && user.role === "teacher" ? 'â–¦' : 'â–¤') + '</span>' + (user && user.role === "teacher" ? 'Schedule' : 'Homework');
     }
     const initials = getInitials(user.name);
     const roleName = user.role.charAt(0).toUpperCase() + user.role.slice(1);
@@ -339,7 +339,7 @@ function renderTeacherDashboard(user) {
     if (classCountLabel) classCountLabel.textContent = isTeacher ? "Classes Today" : "Completed Courses";
 
     const studentCountValue = document.getElementById("attendanceStat");
-    if (studentCountValue) studentCountValue.textContent = isTeacher ? "…" : "92%";
+    if (studentCountValue) studentCountValue.textContent = isTeacher ? "â€¦" : "92%";
 
     if (isTeacher && studentCountValue) {
         portalApi("/api/teacher/dashboard-stats")
@@ -350,7 +350,7 @@ function renderTeacherDashboard(user) {
                 }
             })
             .catch(error => {
-                studentCountValue.textContent = "—";
+                studentCountValue.textContent = "â€”";
                 console.warn("Teacher dashboard statistics could not be loaded.", error);
             });
     }
@@ -405,9 +405,9 @@ function renderTeacherCalendar() {
 
     calendar.innerHTML = `
         <div class="teacher-calendar-head">
-            <button type="button" class="teacher-calendar-nav" data-calendar-prev aria-label="Previous month">‹</button>
+            <button type="button" class="teacher-calendar-nav" data-calendar-prev aria-label="Previous month">â€¹</button>
             <div class="teacher-calendar-title">${monthName}</div>
-            <button type="button" class="teacher-calendar-nav" data-calendar-next aria-label="Next month">›</button>
+            <button type="button" class="teacher-calendar-nav" data-calendar-next aria-label="Next month">â€º</button>
         </div>
         <div class="teacher-calendar-grid">${grid}</div>
         <div class="teacher-calendar-legend"><span class="teacher-calendar-legend-dot"></span> Class days highlighted</div>`;
@@ -481,7 +481,7 @@ async function renderStudentAttendance(user) {
             const dateCell = document.createElement("td");
             dateCell.textContent = new Date(record.date + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
             const classCell = document.createElement("td");
-            classCell.textContent = record.class_name || user.class_name || "—";
+            classCell.textContent = record.class_name || user.class_name || "â€”";
             const statusCell = document.createElement("td");
             const badge = document.createElement("span");
             badge.className = "badge " + (record.status === "Present" ? "success" : record.status === "Absent" ? "danger" : "info");
@@ -560,8 +560,8 @@ async function setupTeacherAttendance(user) {
         attendanceRosterByClass = Object.fromEntries(data.classes.map(item => [item.class_name, item.students]));
         list.innerHTML = data.classes.map(item => `
             <button type="button" class="contact-card attendance-class-card" data-attendance-class="${escapeHTML(item.class_name)}" style="text-align:left;cursor:pointer;color:inherit;">
-                <div class="contact-icon">▦</div><h3>${escapeHTML(item.class_name)}</h3>
-                <p>${item.students.length} students<br><span style="color:var(--primary);font-weight:bold;display:inline-block;margin-top:10px;">View Attendance →</span></p>
+                <div class="contact-icon">â–¦</div><h3>${escapeHTML(item.class_name)}</h3>
+                <p>${item.students.length} students<br><span style="color:var(--primary);font-weight:bold;display:inline-block;margin-top:10px;">View Attendance â†’</span></p>
             </button>`).join("");
         list.querySelectorAll("[data-attendance-class]").forEach(button => button.addEventListener("click", () => openAttendanceRoster(button.dataset.attendanceClass)));
     } catch (error) {
@@ -576,7 +576,7 @@ async function setupTeacherAttendance(user) {
 async function openAttendanceRoster(className) {
     if (!attendanceRosterByClass[className]) return;
     selectedAttendanceClass = className;
-    document.getElementById("attendanceRosterTitle").textContent = className + " — Student Attendance";
+    document.getElementById("attendanceRosterTitle").textContent = className + " â€” Student Attendance";
     document.getElementById("attendanceClassList").closest(".card").classList.add("hidden");
     document.getElementById("attendanceRosterPanel").classList.remove("hidden");
     await renderAttendanceRoster();
@@ -621,7 +621,7 @@ async function renderAttendanceRoster() {
         document.querySelectorAll(".attendance-status-select").forEach(select => select.addEventListener("change", () => {
             select.className = "attendance-status-select status-" + select.value.toLowerCase();
             attendanceDirty = true;
-            message.textContent = "Unsaved changes — click Save Attendance to save them to the database.";
+            message.textContent = "Unsaved changes â€” click Save Attendance to save them to the database.";
             message.className = "contact-success attendance-unsaved";
             updateAttendanceSummary();
         }));
@@ -678,7 +678,7 @@ document.getElementById("saveClassAttendance").addEventListener("click", async (
             body: JSON.stringify({ class_name: selectedAttendanceClass, date, records })
         });
         attendanceDirty = false;
-        message.textContent = "✓ " + result.message + " for " + selectedAttendanceClass + " on " + date + ".";
+        message.textContent = "âœ“ " + result.message + " for " + selectedAttendanceClass + " on " + date + ".";
         message.className = "contact-success attendance-saved";
         await renderAttendanceRoster();
         showToast("Attendance saved to the database.");
@@ -773,7 +773,7 @@ navItems.forEach(item => {
         const collapsed = !group.classList.contains('hidden');
         group.classList.toggle('hidden', collapsed);
         const indicator = button.querySelector('span:last-child');
-        if(indicator) indicator.lastChild.textContent = collapsed ? '　⌄' : '　⌃';
+        if(indicator) indicator.lastChild.textContent = collapsed ? 'ã€€âŒ„' : 'ã€€âŒƒ';
     }));
     refreshTodos();
 })();
@@ -880,12 +880,12 @@ function refreshHomeworkAssignmentOptions() {
     const selectedSubject = normalizeSubject(document.getElementById("homeworkSubject")?.value);
     const matchingPlans = relevant.filter(plan => normalizeSubject(plan.subject) === selectedSubject);
     matchingPlans.forEach(plan => {
-        const option = new Option(plan.title + " — " + plan.subject, plan.title);
+        const option = new Option(plan.title + " â€” " + plan.subject, plan.title);
         select.add(option);
     });
     if ([...select.options].some(option => option.value === current)) select.value = current;
     if (matchingPlans.length === 0) {
-        select.add(new Option(relevant.length ? "No activities for this subject" : "No activities found — check Solutions", ""));
+        select.add(new Option(relevant.length ? "No activities for this subject" : "No activities found â€” check Solutions", ""));
     }
 }
 document.getElementById("homeworkSubject")?.addEventListener("change", refreshHomeworkAssignmentOptions);
@@ -963,9 +963,9 @@ function renderStudentHomeworkResults(submissions = window.portalHomeworkSubmiss
     submissions.forEach(homework => {
         const row = document.createElement("tr");
         const values = [
-            homework.subject || "—",
-            homework.title || "—",
-            homework.submitted_at ? new Date(homework.submitted_at).toLocaleString() : "—",
+            homework.subject || "â€”",
+            homework.title || "â€”",
+            homework.submitted_at ? new Date(homework.submitted_at).toLocaleString() : "â€”",
             homework.status === "Submitted" ? "Turned in" : (homework.status || "Turned in"),
             homework.section || "Not specified"
         ];
@@ -1014,7 +1014,7 @@ async function renderCustomHomework() {
                     const title = document.createElement("td");
                     title.textContent = homework.title;
                     const submitted = document.createElement("td");
-                    submitted.textContent = homework.submitted_at ? new Date(homework.submitted_at).toLocaleString() : "—";
+                    submitted.textContent = homework.submitted_at ? new Date(homework.submitted_at).toLocaleString() : "â€”";
                     const status = document.createElement("td");
                     status.textContent = homework.status === "Submitted" ? "Turned in" : (homework.status || "Turned in");
                     const action = document.createElement("td");
@@ -1083,11 +1083,11 @@ async function renderCustomHomework() {
             row.dataset.customHomework = "true";
             row.dataset.homeworkId = String(homework.id);
             const subjectCell = document.createElement("td");
-            subjectCell.textContent = isTeacher && homework.student ? homework.subject + " — " + homework.student.name : homework.subject;
+            subjectCell.textContent = isTeacher && homework.student ? homework.subject + " â€” " + homework.student.name : homework.subject;
             const titleCell = document.createElement("td");
             titleCell.textContent = homework.title;
             const dateCell = document.createElement("td");
-            dateCell.textContent = homework.submitted_at ? new Date(homework.submitted_at).toLocaleString() : "—";
+            dateCell.textContent = homework.submitted_at ? new Date(homework.submitted_at).toLocaleString() : "â€”";
             const statusCell = document.createElement("td");
             const badge = document.createElement("span");
             badge.className = "badge success";
@@ -1184,15 +1184,15 @@ function renderNotices() {
         card.className = "card";
         card.style.marginBottom = "17px";
 
-        card.innerHTML = \`
+        card.innerHTML = `
             <div class="card-header" style="margin-bottom:10px;">
-                <h3>\${escapeHTML(notice.title)}</h3>
-                <span class="badge info">\${escapeHTML(notice.date)}</span>
+                <h3>${escapeHTML(notice.title)}</h3>
+                <span class="badge info">${escapeHTML(notice.date)}</span>
             </div>
             <p style="font-size:13px;color:#737b8c;line-height:1.7;">
-                \${escapeHTML(notice.description)}
+                ${escapeHTML(notice.description)}
             </p>
-        \`;
+        `;
 
         container.appendChild(card);
     });
@@ -1217,11 +1217,11 @@ function renderDashboardLatestNotices(notices = null) {
     allNotices.slice(0, 3).forEach(notice => {
         const item = document.createElement("div");
         item.className = "notice-item";
-        item.innerHTML = \`
-            <strong>\${escapeHTML(notice.title || "Untitled notice")}</strong>
-            <p>\${escapeHTML(notice.description || "")}</p>
-            <span class="notice-date">\${escapeHTML(notice.date || "Recently")}</span>
-        \`;
+        item.innerHTML = `
+            <strong>${escapeHTML(notice.title || "Untitled notice")}</strong>
+            <p>${escapeHTML(notice.description || "")}</p>
+            <span class="notice-date">${escapeHTML(notice.date || "Recently")}</span>
+        `;
         container.appendChild(item);
     });
 
@@ -1283,7 +1283,7 @@ function refreshStudentRecentActivity() {
 
         const icon = document.createElement("div");
         icon.className = "activity-icon";
-        icon.textContent = "▤";
+        icon.textContent = "✓";
 
         const content = document.createElement("div");
         const title = document.createElement("strong");
@@ -1688,9 +1688,9 @@ window.viewHomework=function(id,row){
     const box=document.getElementById('homeworkDetailsBox');
     if(!box)return;
     document.getElementById('homeworkDetailsTitle').textContent=title;
-    document.getElementById('hdSubject').textContent=subject||'—';
-    document.getElementById('hdDate').textContent=date||'—';
-    document.getElementById('hdStatus').textContent=status||'—';
+    document.getElementById('hdSubject').textContent=subject||'â€”';
+    document.getElementById('hdDate').textContent=date||'â€”';
+    document.getElementById('hdStatus').textContent=status||'â€”';
     document.getElementById('hdDescription').textContent=description;
     const studentRow=document.getElementById('hdStudentRow');
     studentRow.classList.toggle('hidden',!h?.student);
@@ -1823,7 +1823,7 @@ function initTeacherMessages() {
     function showError(message) {
         messages.innerHTML =
             '<div class="chat-empty">' +
-                '<div>✉</div>' +
+                '<div>âœ‰</div>' +
                 '<h3>Unable to load messages</h3>' +
                 '<p>' + esc(message) + '</p>' +
             '</div>';
@@ -1833,7 +1833,7 @@ function initTeacherMessages() {
         if (!selected) {
             messages.innerHTML =
                 '<div class="chat-empty">' +
-                    '<div>✉</div>' +
+                    '<div>âœ‰</div>' +
                     '<h3>Your conversations</h3>' +
                     '<p>Choose a student or teacher to start a private conversation.</p>' +
                 '</div>';
@@ -1843,7 +1843,7 @@ function initTeacherMessages() {
         if (!items.length) {
             messages.innerHTML =
                 '<div class="chat-empty">' +
-                    '<div>✉</div>' +
+                    '<div>âœ‰</div>' +
                     '<h3>Start a private conversation</h3>' +
                     '<p>Send a message to ' + esc(selected.name) + '.</p>' +
                 '</div>';
@@ -1861,7 +1861,7 @@ function initTeacherMessages() {
                     (mine ? 'sent' : 'received') + '">' +
                     esc(message.message) +
                     '<span class="chat-time">' +
-                        esc(senderName) + ' · ' +
+                        esc(senderName) + ' Â· ' +
                         esc(formatTime(message.created_at)) +
                     '</span>' +
                 '</div>'
@@ -1885,7 +1885,7 @@ function studentDetails(person) {
         details.push('Section: ' + esc(person.class_name));
     }
 
-    return details.join(' · ');
+    return details.join(' Â· ');
 }
 
 
@@ -1921,7 +1921,7 @@ function studentDetails(person) {
         ? '<p>' + academicDetails + '</p>'
         : '') +
     '<p>' + roleLabel +
-        ' · <span style="color:#16804a">🔒 Private direct message</span>' +
+        ' Â· <span style="color:#16804a">ðŸ”’ Private direct message</span>' +
     '</p></div>';
 
                 return (
@@ -1936,7 +1936,7 @@ function studentDetails(person) {
     (academicDetails
         ? '<small>' + academicDetails + '</small>'
         : '') +
-    '<small>' + roleLabel + ' · ' +
+    '<small>' + roleLabel + ' Â· ' +
         esc(last) +
     '</small>' +
 '</span>' +
@@ -1967,7 +1967,7 @@ function studentDetails(person) {
     function renderHeader(person) {
         if (!person) {
             header.innerHTML =
-                '<div class="teacher-avatar">✉</div>' +
+                '<div class="teacher-avatar">âœ‰</div>' +
                 '<div><h3>New conversation</h3>' +
                 '<p>Select a registered student or teacher.</p></div>';
             return;
@@ -1983,12 +1983,12 @@ function studentDetails(person) {
             '</div>' +
             '<div><h3>' + esc(person.name) + '</h3>' +
             '<p>' + roleLabel +
-                ' · <span style="color:#16804a">🔒 Private direct message</span>' +
+                ' Â· <span style="color:#16804a">ðŸ”’ Private direct message</span>' +
             '</p></div>';
     }
 
     async function loadContacts() {
-        list.innerHTML = '<div class="empty-state" style="padding:22px">Loading contacts…</div>';
+        list.innerHTML = '<div class="empty-state" style="padding:22px">Loading contactsâ€¦</div>';
 
         try {
             const data = await api('/api/messages/contacts');
@@ -2246,7 +2246,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const relevant=getPlans().filter(p=>p.targetClass==='All Classes'||!user.className||p.targetClass===user.className).slice().reverse();
     const read=getRead(); const unread=relevant.filter(p=>!read.includes(String(p.id)));
     count.textContent=unread.length>99?'99+':String(unread.length);count.style.display=unread.length?'block':'none';
-    itemsBox.innerHTML=relevant.length?relevant.map(p=>'<div class="notification-entry '+(read.includes(String(p.id))?'':'unread')+'" data-notification-id="'+esc(p.id)+'"><strong>New activity uploaded: '+esc(p.title)+'</strong><p>'+esc(p.subject)+' · '+esc(p.targetClass)+(p.description?' — '+esc(p.description):'')+'</p><small>From '+esc(p.teacherName||'Teacher')+' · '+esc(p.sentAt||'')+'</small></div>').join(''):'<p style="font-size:13px;color:#737b8c;padding:12px 0;">No activity notifications yet.</p>';
+    itemsBox.innerHTML=relevant.length?relevant.map(p=>'<div class="notification-entry '+(read.includes(String(p.id))?'':'unread')+'" data-notification-id="'+esc(p.id)+'"><strong>New activity uploaded: '+esc(p.title)+'</strong><p>'+esc(p.subject)+' Â· '+esc(p.targetClass)+(p.description?' â€” '+esc(p.description):'')+'</p><small>From '+esc(p.teacherName||'Teacher')+' Â· '+esc(p.sentAt||'')+'</small></div>').join(''):'<p style="font-size:13px;color:#737b8c;padding:12px 0;">No activity notifications yet.</p>';
     itemsBox.querySelectorAll('[data-notification-id]').forEach(el=>el.addEventListener('click',()=>{const id=el.dataset.notificationId;const updated=getRead();if(!updated.includes(id))updated.push(id);saveRead(updated);renderNotifications();if(typeof window.showPage==='function')window.showPage('solutions');const nav=document.querySelector('.nav-item[data-page="solutions"]');if(nav)nav.click();}));
   }
   if(bell&&panel){bell.addEventListener('click',e=>{e.stopPropagation();const opening=panel.classList.contains('hidden');panel.classList.toggle('hidden');bell.setAttribute('aria-expanded',String(opening));if(opening)renderNotifications();});document.addEventListener('click',e=>{if(!document.getElementById('notificationBell').contains(e.target)){panel.classList.add('hidden');bell.setAttribute('aria-expanded','false');}});}
@@ -2258,8 +2258,8 @@ document.addEventListener('DOMContentLoaded', () => {
     renderNotifications();
     teacherTools.classList.toggle('hidden',!isTeacher); cards.classList.toggle('hidden',isTeacher); notice.classList.toggle('hidden',isTeacher);
     const plans=getPlans().filter(p=>isTeacher ? p.teacherEmail===(user.email||'') : (p.targetClass==='All Classes'||!user||!user.className||p.targetClass===user.className));
-    if(!plans.length){list.innerHTML=isTeacher?'<div class="empty-state"><div class="empty-icon">▤</div><h3>No lesson plans sent yet</h3><p>Use the form above to send a lesson plan to one of your classes.</p></div>':'';return;}
-    list.innerHTML=plans.slice().reverse().map(p=>'<article class="lesson-plan-card"><span class="lesson-plan-tag">'+esc(p.subject)+'</span><h3>'+esc(p.title)+'</h3><div class="lesson-plan-meta"><span class="lesson-plan-tag">'+esc(p.targetClass)+'</span>'+(p.lessonDate?'<span class="lesson-plan-tag">Lesson: '+esc(p.lessonDate)+'</span>':'')+(p.dueDate?'<span class="lesson-plan-tag">Due: '+esc(p.dueDate)+'</span>':'')+'</div><p>'+esc(p.description||'No additional instructions provided.')+'</p>'+(p.fileName&&p.fileData?'<a class="lesson-file-link" download="'+esc(p.fileName)+'" href="'+p.fileData+'">Download attachment: '+esc(p.fileName)+'</a>':'')+'<div class="lesson-by">Sent by '+esc(p.teacherName||'Teacher')+' · '+esc(p.sentAt)+'</div></article>').join('');
+    if(!plans.length){list.innerHTML=isTeacher?'<div class="empty-state"><div class="empty-icon">â–¤</div><h3>No lesson plans sent yet</h3><p>Use the form above to send a lesson plan to one of your classes.</p></div>':'';return;}
+    list.innerHTML=plans.slice().reverse().map(p=>'<article class="lesson-plan-card"><span class="lesson-plan-tag">'+esc(p.subject)+'</span><h3>'+esc(p.title)+'</h3><div class="lesson-plan-meta"><span class="lesson-plan-tag">'+esc(p.targetClass)+'</span>'+(p.lessonDate?'<span class="lesson-plan-tag">Lesson: '+esc(p.lessonDate)+'</span>':'')+(p.dueDate?'<span class="lesson-plan-tag">Due: '+esc(p.dueDate)+'</span>':'')+'</div><p>'+esc(p.description||'No additional instructions provided.')+'</p>'+(p.fileName&&p.fileData?'<a class="lesson-file-link" download="'+esc(p.fileName)+'" href="'+p.fileData+'">Download attachment: '+esc(p.fileName)+'</a>':'')+'<div class="lesson-by">Sent by '+esc(p.teacherName||'Teacher')+' Â· '+esc(p.sentAt)+'</div></article>').join('');
   }
   form.addEventListener('submit',async e=>{
     e.preventDefault(); const user=activeUser(); if(!user||user.role!=='teacher'){return;}
@@ -2442,10 +2442,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.__llccResultRows = window.__llccResultRows || {};
                 window.__llccResultRows[resultKey] = matching;
                 return '<tr>' +
-                    '<td>' + esc(plan.subject || '—') + '</td>' +
+                    '<td>' + esc(plan.subject || 'â€”') + '</td>' +
                     '<td>' + esc(plan.title || 'Untitled activity') + '</td>' +
                     '<td>' + esc(fmtDate(plan.dueDate || '') + (plan.dueTime ? ' at ' + new Date('2000-01-01T' + plan.dueTime).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : ' (time not set)')) + '</td>' +
-                    '<td><span class="badge info">' + esc(plan.targetClass || '—') + '</span></td>' +
+                    '<td><span class="badge info">' + esc(plan.targetClass || 'â€”') + '</span></td>' +
                     '<td><span class="badge ' + (count ? 'success' : 'warning') + '">' +
                     count + (count === 1 ? ' student' : ' students') + ' turned in</span> ' +
                     '<button type="button" class="secondary-btn" data-view-results="' + esc(resultKey) + '">View</button></td>' +
@@ -2541,7 +2541,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const studentButton = document.createElement('button');
             studentButton.type = 'button';
             studentButton.className = 'secondary-btn';
-            studentButton.textContent = (item.student?.name || 'Student') + ' · ' + (item.status === 'Submitted' ? 'Turned in' : (item.status || 'Turned in'));
+            studentButton.textContent = (item.student?.name || 'Student') + ' Â· ' + (item.status === 'Submitted' ? 'Turned in' : (item.status || 'Turned in'));
             studentButton.style.display = 'block';
             studentButton.style.margin = '8px 0';
             studentButton.addEventListener('click', () => {
