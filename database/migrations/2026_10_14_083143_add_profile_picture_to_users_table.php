@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -6,20 +7,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
-{
-    Schema::table('users', function (Blueprint $table) {
-        $table->string('profile_picture')->nullable();
-    });
-}
+    {
+        if (!Schema::hasColumn('users', 'profile_picture')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('profile_picture')->nullable();
+            });
+        }
+    }
 
-public function down(): void
-{
-    Schema::table('users', function (Blueprint $table) {
-        $table->dropColumn('profile_picture');
-    });
-}
+    public function down(): void
+    {
+        // Do not drop this column; another migration may own it.
+    }
 };
