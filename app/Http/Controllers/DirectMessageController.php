@@ -14,7 +14,7 @@ class DirectMessageController extends Controller
         $user = $request->user();
 
         abort_unless(
-            $user && in_array($user->role, ['student', 'teacher'], true),
+            $user && in_array(strtolower((string) $user->role), ['student', 'teacher'], true),
             403,
             'Only students and teachers can use direct messaging.'
         );
@@ -28,7 +28,7 @@ class DirectMessageController extends Controller
 
         $contacts = User::query()
             ->whereKeyNot($user->id)
-            ->whereIn('role', ['student', 'teacher'])
+            ->whereRaw('LOWER(role) IN (?, ?)', ['student', 'teacher'])
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'role', 'class_name']);
 
