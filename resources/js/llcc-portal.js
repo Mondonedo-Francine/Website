@@ -813,7 +813,7 @@ function renderStudentHomeworkResults(submissions = window.portalHomeworkSubmiss
             homework.subject || "—",
             homework.title || "—",
             homework.submitted_at ? new Date(homework.submitted_at).toLocaleString() : "—",
-            homework.status || "Submitted",
+            homework.status === "Submitted" ? "Turned in" : (homework.status || "Turned in"),
             homework.section || "Not specified"
         ];
         values.forEach(value => {
@@ -861,11 +861,11 @@ async function renderCustomHomework() {
                     const submitted = document.createElement("td");
                     submitted.textContent = homework.submitted_at ? new Date(homework.submitted_at).toLocaleString() : "—";
                     const status = document.createElement("td");
-                    status.textContent = homework.status || "Submitted";
+                    status.textContent = homework.status === "Submitted" ? "Turned in" : (homework.status || "Turned in");
                     const action = document.createElement("td");
                     const statusSelect = document.createElement("select");
                     statusSelect.setAttribute("aria-label", "Homework completion status");
-                    [["Submitted", "Submitted"], ["Done", "Done"], ["Not Done", "Not Done"]].forEach(([value, label]) => {
+                    [["Submitted", "Turned in"], ["Done", "Done"], ["Not Done", "Not Done"]].forEach(([value, label]) => {
                         const option = document.createElement("option");
                         option.value = value;
                         option.textContent = label;
