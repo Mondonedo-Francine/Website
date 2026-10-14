@@ -442,21 +442,77 @@ function openAttendanceRoster(className) {
     document.getElementById("attendanceRosterPanel").classList.remove("hidden");
     renderAttendanceRoster();
 }
+let attendanceDirty = false;
+function attendanceDraftKey(className, date) { return "llccAttendanceDraft:" + className + ":" + date; }
+function attendanceHistoryKey(className) { return "llccAttendanceHistory:" + className; }
+function getAttendanceRecords(className, date) {
+    try { return JSON.parse(localStorage.getItem(attendanceStorageKey(className, date)) || "{}"); } catch (e) { return {}; }
+}
+function getAttendanceDraft(className, date) {
+    try { return JSON.parse(localStorage.getItem(attendanceDraftKey(className, date)) || "null"); } catch (e) { return null; }
+}
+function updateAttendanceSummary() {
+    const selects = [...document.querySelectorAll(".attendance-status-select")];
+    const counts = { Present: 0, Absent: 0, Late: 0, Excused: 0 };
+    selects.forEach(select => { if (counts[select.value] !== undefined) counts[select.value]++; });
+    const total = selects.length;
+    [["attendanceTotalStudents", total], ["attendancePresentCount", counts.Present], ["attendanceAbsentCount", counts.Absent], ["attendanceLateCount", counts.Late]].forEach(([id, value]) => {
+        const el = document.getElementById(id); if (el) el.textContent = value;
+    });
+}
+function renderAttendanceHistory() {
+    const el = document.getElementById("attendanceHistoryList");
+    if (!el || !selectedAttendanceClass) return;
+    let history = [];
+    try { history = JSON.parse(localStorage.getItem(attendanceHistoryKey(selectedAttendanceClass)) || "[]"); } catch (e) {}
+    el.innerHTML = history.length ? history.slice(0,8).map(item =>
+        '<li><strong>' + item.date + '</strong><span>' + item.savedAt + '</span></li>'
+    ).join("") : '<li class="attendance-history-empty">No saved attendance history yet.</li>';
+}
 function renderAttendanceRoster() {
     if (!selectedAttendanceClass) return;
     const date = document.getElementById("teacherAttendanceDate").value || new Date().toISOString().slice(0,10);
-    const key = attendanceStorageKey(selectedAttendanceClass, date);
-    let records = {};
-    try { records = JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) {}
+    const saved = getAttendanceRecords(selectedAttendanceClass, date);
+    const draft = getAttendanceDraft(selectedAttendanceClass, date);
+    const records = draft || saved;
     document.getElementById("teacherAttendanceRoster").innerHTML = teacherClasses[selectedAttendanceClass].map((name, index) => {
         const id = "LLCC-" + selectedAttendanceClass.replace(/[^a-z0-9]/gi, "") + "-" + String(index+1).padStart(3,"0");
         const status = records[name] || "Present";
-        return `<tr><td>${index+1}</td><td>${name}</td><td>${id}</td><td><select class="attendance-status-select" data-student="${name}" style="padding:8px;border:1px solid #ccd1dc;border-radius:6px;min-width:125px;"><option ${status==='Present'?'selected':''}>Present</option><option ${status==='Absent'?'selected':''}>Absent</option><option ${status==='Late'?'selected':''}>Late</option><option ${status==='Excused'?'selected':''}>Excused</option></select></td></tr>`;
+        return `<tr><td>${index+1}</td><td>${name}</td><td>${id}</td><td><select class="attendance-status-select status-${status.toLowerCase()}" data-student="${name}" aria-label="Attendance status for ${name}"><option ${status==='Present'?'selected':''}>Present</option><option ${status==='Absent'?'selected':''}>Absent</option><option ${status==='Late'?'selected':''}>Late</option><option ${status==='Excused'?'selected':''}>Excused</option></select></td></tr>`;
     }).join("");
-    document.getElementById("attendanceSaveMessage").style.display = "none";
+    document.querySelectorAll(".attendance-status-select").forEach(select => {
+        select.addEventListener("change", () => {
+            select.className = "attendance-status-select status-" + select.value.toLowerCase();
+            const current = {};
+            document.querySelectorAll(".attendance-status-select").forEach(s => current[s.dataset.student] = s.value);
+            try { localStorage.setItem(attendanceDraftKey(selectedAttendanceClass, date), JSON.stringify(current)); } catch (e) {}
+            attendanceDirty = true;
+            const msg = document.getElementById("attendanceSaveMessage");
+            msg.textContent = "Unsaved changes — click Save Attendance to keep these changes.";
+            msg.className = "contact-success attendance-unsaved"; msg.style.display = "block";
+            updateAttendanceSummary();
+        });
+    });
+    const savedMetaKey = attendanceStorageKey(selectedAttendanceClass, date) + ":meta";
+    let meta = null; try { meta = JSON.parse(localStorage.getItem(savedMetaKey) || "null"); } catch (e) {}
+    const message = document.getElementById("attendanceSaveMessage");
+    if (draft) {
+        message.textContent = "Recovered unsaved changes for " + date + ". Save to confirm them.";
+        message.className = "contact-success attendance-unsaved"; message.style.display = "block";
+    } else if (meta && meta.savedAt) {
+        message.textContent = "Last saved " + meta.savedAt + " for " + date + ".";
+        message.className = "contact-success attendance-saved"; message.style.display = "block";
+    } else { message.style.display = "none"; }
+    attendanceDirty = !!draft;
+    updateAttendanceSummary();
+    renderAttendanceHistory();
 }
-document.getElementById("teacherAttendanceDate").addEventListener("change", renderAttendanceRoster);
+document.getElementById("teacherAttendanceDate").addEventListener("change", () => {
+    if (attendanceDirty && !confirm("You have unsaved attendance changes. Switch dates and keep a draft for later?")) return;
+    renderAttendanceRoster();
+});
 document.getElementById("backToAttendanceClasses").addEventListener("click", () => {
+    if (attendanceDirty && !confirm("Your changes are not saved. Return to classes anyway? Your draft will be kept in this browser.")) return;
     document.getElementById("attendanceRosterPanel").classList.add("hidden");
     document.getElementById("attendanceClassList").closest(".card").classList.remove("hidden");
     selectedAttendanceClass = "";
@@ -466,10 +522,26 @@ document.getElementById("saveClassAttendance").addEventListener("click", () => {
     const date = document.getElementById("teacherAttendanceDate").value || new Date().toISOString().slice(0,10);
     const records = {};
     document.querySelectorAll(".attendance-status-select").forEach(select => records[select.dataset.student] = select.value);
-    localStorage.setItem(attendanceStorageKey(selectedAttendanceClass, date), JSON.stringify(records));
+    const savedAt = new Date().toLocaleString();
+    try {
+        localStorage.setItem(attendanceStorageKey(selectedAttendanceClass, date), JSON.stringify(records));
+        localStorage.setItem(attendanceStorageKey(selectedAttendanceClass, date) + ":meta", JSON.stringify({savedAt}));
+        localStorage.removeItem(attendanceDraftKey(selectedAttendanceClass, date));
+        let history = JSON.parse(localStorage.getItem(attendanceHistoryKey(selectedAttendanceClass)) || "[]");
+        history = [{date, savedAt}, ...history.filter(item => item.date !== date)].slice(0,20);
+        localStorage.setItem(attendanceHistoryKey(selectedAttendanceClass), JSON.stringify(history));
+    } catch (e) {
+        alert("Could not save attendance in this browser. Please check available storage.");
+        return;
+    }
+    attendanceDirty = false;
     const message = document.getElementById("attendanceSaveMessage");
-    message.textContent = "Attendance saved for " + selectedAttendanceClass + " on " + date + ".";
-    message.style.display = "block";
+    message.textContent = "✓ Attendance saved successfully for " + selectedAttendanceClass + " on " + date + ". Last saved: " + savedAt;
+    message.className = "contact-success attendance-saved"; message.style.display = "block";
+    renderAttendanceHistory();
+});
+window.addEventListener("beforeunload", event => {
+    if (attendanceDirty) { event.preventDefault(); event.returnValue = ""; }
 });
 
 /* =========================================================
