@@ -10,7 +10,13 @@ const CUSTOM_HOMEWORK_KEY = "creative_readers_homework";
 const CUSTOM_NOTICES_KEY = "creative_readers_notices";
 
 function getUsers() {
-    return JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
+    try {
+        const users = JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
+        return Array.isArray(users) ? users : [];
+    } catch (error) {
+        console.warn("Saved user data could not be read.", error);
+        return [];
+    }
 }
 
 function saveUsers(users) {
@@ -18,7 +24,12 @@ function saveUsers(users) {
 }
 
 function getCurrentUser() {
-    return JSON.parse(localStorage.getItem(CURRENT_USER_KEY) || "null");
+    try {
+        return JSON.parse(localStorage.getItem(CURRENT_USER_KEY) || "null");
+    } catch (error) {
+        console.warn("Saved session data could not be read.", error);
+        return null;
+    }
 }
 
 function saveCurrentUser(user) {
@@ -231,26 +242,12 @@ document.getElementById("signupForm").addEventListener("submit", function(event)
 document.getElementById("forgotPassword").addEventListener("click", function(event) {
     event.preventDefault();
 
-    const username = prompt("Enter your registered email or phone number:");
-
-    if (!username) return;
-
-    const users = getUsers();
-
-    const user = users.find(account =>
-        account.email.toLowerCase() === username.trim().toLowerCase() ||
-        account.phone === username.trim()
-    );
-
-    if (!user) {
-        alert("No account was found with that email or phone number.");
-        return;
-    }
-
+    // Never display or reveal a stored password. This prototype has no secure
+    // server-side password reset flow, so direct users to the administrator.
     alert(
-        "Demo password recovery:\n\n" +
-        "Your current password is: " + user.password +
-        "\n\nFor a real website, this should send a secure reset link by email."
+        "Password reset is not available in this demo yet.\n\n" +
+        "Please contact your portal administrator for help.\n\n" +
+        "Note: this prototype stores account data in this browser only and is not ready for real student accounts."
     );
 });
 
