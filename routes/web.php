@@ -31,6 +31,7 @@ Route::middleware('auth')->prefix('api')->group(function () {
     Route::put('/attendance', [PortalDataController::class, 'saveAttendance']);
     Route::get('/homework/submissions', [PortalDataController::class, 'submissions']);
     Route::post('/homework/submissions', [PortalDataController::class, 'submitHomework']);
+    Route::patch('/homework/submissions/{submission}/status', [PortalDataController::class, 'updateHomeworkStatus']);
 
     Route::get('/messages/contacts', [\App\Http\Controllers\DirectMessageController::class, 'contacts']);
     Route::get('/messages/{user}', [\App\Http\Controllers\DirectMessageController::class, 'index']);
