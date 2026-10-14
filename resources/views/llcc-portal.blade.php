@@ -591,18 +591,39 @@
                             </div>
 
                             <div class="form-group">
-                                <label>Assignment Title</label>
-                                <input type="text" id="homeworkTitle" required>
+                                <label for="homeworkTitle">Teacher's Assignment</label>
+                                <select id="homeworkTitle" required>
+                                    <option value="">Choose an activity sent by your teacher</option>
+                                </select>
+                                <small class="lesson-helper">Activities are loaded from the Solutions page.</small>
                             </div>
 
                             <div class="form-group full-width">
-                                <label>Description</label>
-                                <textarea id="homeworkDescription" rows="4" required></textarea>
+                                <label for="homeworkDescription">Your work / description</label>
+                                <textarea id="homeworkDescription" rows="4" required placeholder="Describe your work or add your answer here..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="homeworkAttachmentType">Optional attachment</label>
+                                <select id="homeworkAttachmentType">
+                                    <option value="">No attachment</option>
+                                    <option value="file">Attach a file</option>
+                                    <option value="link">Paste a link</option>
+                                    <option value="drive">Google Drive link</option>
+                                </select>
+                            </div>
+                            <div class="form-group hidden" id="homeworkFileGroup">
+                                <label for="homeworkAttachmentFile">Choose file (optional)</label>
+                                <input type="file" id="homeworkAttachmentFile">
+                            </div>
+                            <div class="form-group hidden" id="homeworkLinkGroup">
+                                <label for="homeworkAttachmentUrl">Attachment URL</label>
+                                <input type="url" id="homeworkAttachmentUrl" placeholder="https://...">
                             </div>
                         </div>
 
                         <div class="form-actions">
-                            <button type="submit" class="primary-btn">Submit Homework</button>
+                            <button type="submit" class="primary-btn">Turn In</button>
                             <button type="button" class="secondary-btn" id="cancelHomeworkBtn">Cancel</button>
                         </div>
                     </form>
