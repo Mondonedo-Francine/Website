@@ -1966,6 +1966,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return String(value);
     };
 
+    // Normalize legacy labels so "Computer" submissions match "Computer Studies" activities.
+    const normalizeSubject = value => {
+        const subject = String(value || '').trim().toLowerCase().replace(/\\s+/g, ' ');
+        if (subject === 'computer' || subject === 'computer studies') return 'computer studies';
+        return subject.replace(/[^a-z0-9]/g, '');
+    };
+
+    // Ignore spaces and hyphens in section labels, e.g. "BSIT 2-B" and "BSIT2B".
+    const normalizeClass = value => String(value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
     async function render(user = null) {
         user = user || (
             typeof getCurrentUser === 'function'
@@ -2017,18 +2027,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     .trim()
                     .toLowerCase();
 
-                const planSubject = String(plan.subject || '')
-                    .trim()
-                    .toLowerCase();
+                const planSubject = normalizeSubject(plan.subject);
 
                 const matching = submissions.filter(submission => {
                     const sameTitle = String(submission.title || '')
                         .trim()
                         .toLowerCase() === planTitle;
 
-                    const sameSubject = String(submission.subject || '')
-                        .trim()
-                        .toLowerCase() === planSubject;
+                    const sameSubject = normalizeSubject(submission.subject) === planSubject;
 
                     const studentClass = String(
                         submission.student?.class_name ||
@@ -2039,8 +2045,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         submission.className ||
                         submission.section ||
                         ''
-                    ).trim().toLowerCase();
-                    const targetClass = String(plan.targetClass || '').trim().toLowerCase();
+                    );
+                    const normalizedStudentClass = normalizeClass(studentClass);
+                    const targetClass = normalizeClass(plan.targetClass);
 
                     // Some older student accounts/submissions do not include a section.
                     // Count those against the activity so they are not silently lost;
@@ -2050,7 +2057,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const unknownSectionCanCount = !studentClass && !unassignedCounted.has(activityKey);
                     const sameClass =
                         targetClass === 'all classes' ||
-                        studentClass === targetClass ||
+                        normalizedStudentClass === targetClass ||
                         unknownSectionCanCount;
 
                     return sameTitle && sameSubject && sameClass;
