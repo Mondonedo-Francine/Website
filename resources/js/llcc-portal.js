@@ -2078,7 +2078,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const count = uniqueStudents.size;
 
-                const resultKey = 'result-' + String(plan.id || plan.title);
+                const resultKey = 'result-' + String(plan.resultPlanId || plan.id || plan.title) + '-' + normalizeClass(plan.targetClass);
                 window.__llccResultRows = window.__llccResultRows || {};
                 window.__llccResultRows[resultKey] = matching;
                 return '<tr>' +
