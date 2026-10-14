@@ -1014,85 +1014,422 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
     const page=[...document.querySelectorAll('.page')].find(x=>/solutions/i.test(x.innerText));if(!page||page.querySelector('.solution-modal'))return;
     const modal=document.createElement('div');modal.className='solution-modal hidden';modal.innerHTML='<div class="modal-card"><h2 id="solutionTitle"></h2><div id="solutionBody"></div><button class="secondary-btn" id="closeSolution">Close</button></div>';page.appendChild(modal);const data={Mathematics:['Review the lesson examples, practice the assigned equations, and check each answer carefully.','1. Write the problem. 2. Show your solution. 3. Simplify the final answer.'],English:['Identify the main idea, supporting details, vocabulary, and grammar patterns in the passage.','Use complete sentences and quote details from the text when explaining your answer.'],Science:['Review the key concepts, definitions, processes, and real-world examples from the lesson.','Explain the process in your own words and include labeled diagrams when needed.']};window.openSolution=function(subject){document.getElementById('solutionTitle').textContent=subject+' Solutions';document.getElementById('solutionBody').innerHTML='<p>'+data[subject][0]+'</p><p><b>Suggested solution guide:</b> '+data[subject][1]+'</p>';modal.classList.remove('hidden')};document.getElementById('closeSolution').onclick=()=>modal.classList.add('hidden');page.querySelectorAll('.solution-open-btn').forEach(b=>{const subject=b.closest('.solution-card')?.querySelector('h2')?.textContent.replace(' Solutions','')||'Mathematics';b.onclick=()=>openSolution(subject)})
   }
-  function initTeacherMessages(){
-    const list=document.getElementById('teacherList'), header=document.getElementById('chatHeader'), messages=document.getElementById('chatMessages'), form=document.getElementById('chatForm'), input=document.getElementById('chatInput'), send=document.getElementById('sendChatBtn');
-    const search=document.getElementById('messageSearch');
-    if(!list||!header||!messages||!form)return;
-    let current=typeof getCurrentUser==='function'?getCurrentUser():null;
-    let currentId=String(current?.id ?? current?.email ?? '');
-    let currentRole=String(current?.role||'student').toLowerCase();
-    const storageKey='llcc_private_direct_messages_v2';
-    const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const pairKey=(a,b)=>[String(a),String(b)].sort().join('::');
-    const getChats=()=>{try{return JSON.parse(localStorage.getItem(storageKey)||'{}')}catch(e){return {}}};
-    const getId=u=>String(u?.id ?? u?.email ?? '');
-    const getPeople=()=>{
-      const accounts=(typeof getUsers==='function'?getUsers():[])
-        .filter(u=>getId(u)!==currentId && ['student','teacher'].includes(String(u.role||'').toLowerCase()))
-        .map(u=>({id:getId(u),name:u.name||u.email||'User',subject:String(u.role||'').toLowerCase()==='teacher'?(u.subject||'Teacher'):'Student',initials:getInitials(u.name||u.email||'User'),role:String(u.role||'').toLowerCase(),email:u.email}));
-      // Show every other registered account. Each recipient gets a separate thread.
-      return accounts;
-    };
-    let people=getPeople(), selected=null;
-    function renderMessages(){
-      const items=selected?(getChats()[pairKey(currentId,selected.id)]||[]):[];
-      messages.innerHTML='';
-      if(!selected||!items.length){messages.innerHTML='<div class="chat-empty"><div>✉</div><h3>'+(selected?'Start a private conversation':'Your conversations')+'</h3><p>'+(selected?'Send a message to '+esc(selected.name)+'. They can sign in to their own account and reply in this same conversation.':'Choose any registered user on the left to start a private conversation.')+'</p></div>';return;}
-      items.forEach(m=>{const bubble=document.createElement('div');bubble.className='chat-bubble '+(String(m.senderId)===currentId?'sent':'received');bubble.innerHTML=esc(m.text)+'<span class="chat-time">'+(String(m.senderId)===currentId?'You':'')+(m.senderName?' · '+esc(m.senderName):'')+' · '+esc(m.time||'')+'</span>';messages.appendChild(bubble)});
-      messages.scrollTop=messages.scrollHeight;
+
+function initTeacherMessages() {
+    const list = document.getElementById('teacherList');
+    const header = document.getElementById('chatHeader');
+    const messages = document.getElementById('chatMessages');
+    const form = document.getElementById('chatForm');
+    const input = document.getElementById('chatInput');
+    const send = document.getElementById('sendChatBtn');
+    const search = document.getElementById('messageSearch');
+
+    if (!list || !header || !messages || !form || !input || !send) return;
+
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[ch]));
+
+    const getId = user => String(user?.id ?? '');
+
+    function getInitialsSafe(name) {
+        if (typeof getInitials === 'function') {
+            return getInitials(name || 'User');
+        }
+
+        return String(name || 'User')
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map(part => part[0])
+            .join('')
+            .toUpperCase();
     }
-    function renderList(){
-      people=getPeople();
-      const q=(search?.value||'').trim().toLowerCase();
-      const chats=getChats();
-      const visible=people.filter(p=>{
-        const thread=chats[pairKey(currentId,p.id)]||[];
-        const last=thread[thread.length-1];
-        return (p.name+' '+p.subject+' '+p.role+' '+(last?.text||'')).toLowerCase().includes(q);
-      }).sort((a,b)=>{
-        const at=(getChats()[pairKey(currentId,a.id)]||[]).slice(-1)[0]?.timestamp||0;
-        const bt=(getChats()[pairKey(currentId,b.id)]||[]).slice(-1)[0]?.timestamp||0;
-        return bt-at;
-      });
-      list.innerHTML=visible.length?visible.map(p=>{
-        const thread=chats[pairKey(currentId,p.id)]||[],last=thread[thread.length-1];
-        return '<button type="button" class="teacher-option '+(selected&&selected.id===p.id?'active':'')+'" data-person="'+esc(p.id)+'"><span class="teacher-avatar">'+esc(p.initials)+'</span><span><strong>'+esc(p.name)+'</strong><small>'+esc(p.subject)+' · '+(last?esc(last.text):'Private message')+'</small></span></button>';
-      }).join(''):'<div class="empty-state" style="padding:22px">No other registered users found. Create another student or teacher account to start a conversation.</div>';
-      list.querySelectorAll('[data-person]').forEach(b=>b.addEventListener('click',()=>choosePerson(people.find(p=>p.id===b.dataset.person))));
+
+    let current = typeof getCurrentUser === 'function'
+        ? getCurrentUser()
+        : null;
+
+    let currentId = getId(current);
+    let people = [];
+    let selected = null;
+    let lastMessages = {};
+    let loadingThread = false;
+    let sending = false;
+    let threadRequestId = 0;
+
+    async function api(url, options = {}) {
+        const headers = {
+            'Accept': 'application/json',
+            ...(options.body ? {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf
+            } : {}),
+            ...(options.headers || {})
+        };
+
+        const response = await fetch(url, {
+            credentials: 'same-origin',
+            ...options,
+            headers
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Your session has expired. Please sign in again.');
+            }
+
+            if (response.status === 419) {
+                throw new Error('Your security token expired. Refresh the page and sign in again.');
+            }
+
+            throw new Error(data.message || 'The messaging request failed.');
+        }
+
+        return data;
     }
-    function refreshForCurrentUser(){
-      current=typeof getCurrentUser==='function'?getCurrentUser():null;
-      currentId=String(current?.id ?? current?.email ?? '');
-      currentRole=String(current?.role||'student').toLowerCase();
-      selected=null;
-      input.value='';
-      input.disabled=!current;
-      send.disabled=!current;
-      header.innerHTML='<div class="teacher-avatar">✉</div><div><h3>New conversation</h3><p>Select a registered user to message privately.</p></div>';
-      renderList();
-      if(!current){messages.innerHTML='<div class="chat-empty"><div>✉</div><h3>Sign in to message</h3><p>Log in to start a private conversation.</p></div>';input.disabled=true;send.disabled=true;return;}
-      const first=people.find(p=>(getChats()[pairKey(currentId,p.id)]||[]).length)||people[0];
-      if(first)choosePerson(first);
-      else renderMessages();
+
+    function formatTime(value) {
+        if (!value) return '';
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) return '';
+
+        return date.toLocaleString([], {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        });
     }
-    window.refreshPortalMessaging=refreshForCurrentUser;
-    function choosePerson(p){
-      if(!p)return; selected=p;
-      header.innerHTML='<div class="teacher-avatar">'+esc(p.initials)+'</div><div><h3>'+esc(p.name)+'</h3><p>'+esc(p.subject)+' · <span style="color:#16804a">🔒 Private direct message</span></p></div>';
-      input.disabled=false;send.disabled=false;input.placeholder='Message '+p.name+'...';renderList();renderMessages();
+
+    function showError(message) {
+        messages.innerHTML =
+            '<div class="chat-empty">' +
+                '<div>✉</div>' +
+                '<h3>Unable to load messages</h3>' +
+                '<p>' + esc(message) + '</p>' +
+            '</div>';
     }
-    if(search)search.addEventListener('input',renderList);
-    form.addEventListener('submit',e=>{
-      e.preventDefault();const text=input.value.trim();if(!text||!selected)return;
-      const chats=getChats(),key=pairKey(currentId,selected.id);chats[key]=chats[key]||[];
-      chats[key].push({senderId:currentId,recipientId:selected.id,senderName:current?.name||current?.email||'Current user',text,time:new Date().toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}),timestamp:Date.now()});
-      localStorage.setItem(storageKey,JSON.stringify(chats));input.value='';renderList();renderMessages();input.focus();
+
+    function renderMessages(items = []) {
+        if (!selected) {
+            messages.innerHTML =
+                '<div class="chat-empty">' +
+                    '<div>✉</div>' +
+                    '<h3>Your conversations</h3>' +
+                    '<p>Choose a student or teacher to start a private conversation.</p>' +
+                '</div>';
+            return;
+        }
+
+        if (!items.length) {
+            messages.innerHTML =
+                '<div class="chat-empty">' +
+                    '<div>✉</div>' +
+                    '<h3>Start a private conversation</h3>' +
+                    '<p>Send a message to ' + esc(selected.name) + '.</p>' +
+                '</div>';
+            return;
+        }
+
+        messages.innerHTML = items.map(message => {
+            const mine = String(message.sender_id) === currentId;
+            const senderName = mine
+                ? 'You'
+                : (message.sender_name || selected.name);
+
+            return (
+                '<div class="chat-bubble ' +
+                    (mine ? 'sent' : 'received') + '">' +
+                    esc(message.message) +
+                    '<span class="chat-time">' +
+                        esc(senderName) + ' · ' +
+                        esc(formatTime(message.created_at)) +
+                    '</span>' +
+                '</div>'
+            );
+        }).join('');
+
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    function renderList() {
+        const query = (search?.value || '').trim().toLowerCase();
+
+        const visible = people.filter(person => {
+            const last = lastMessages[String(person.id)] || '';
+
+            return (
+                person.name + ' ' +
+                person.role + ' ' +
+                person.email + ' ' +
+                last
+            ).toLowerCase().includes(query);
+        });
+
+        list.innerHTML = visible.length
+            ? visible.map(person => {
+                const id = String(person.id);
+                const last = lastMessages[id] || 'Private message';
+                const roleLabel = person.role === 'teacher'
+                    ? 'Teacher'
+                    : 'Student';
+
+                return (
+                    '<button type="button" class="teacher-option ' +
+                        (selected && String(selected.id) === id ? 'active' : '') +
+                        '" data-person="' + esc(id) + '">' +
+                        '<span class="teacher-avatar">' +
+                            esc(getInitialsSafe(person.name)) +
+                        '</span>' +
+                        '<span>' +
+                            '<strong>' + esc(person.name) + '</strong>' +
+                            '<small>' + roleLabel + ' · ' +
+                                esc(last) +
+                            '</small>' +
+                        '</span>' +
+                    '</button>'
+                );
+            }).join('')
+            : '<div class="empty-state" style="padding:22px">' +
+                'No other registered students or teachers found.' +
+              '</div>';
+
+        list.querySelectorAll('[data-person]').forEach(button => {
+            button.addEventListener('click', () => {
+                const person = people.find(
+                    item => String(item.id) === button.dataset.person
+                );
+
+                if (person) choosePerson(person);
+            });
+        });
+    }
+
+    function renderHeader(person) {
+        if (!person) {
+            header.innerHTML =
+                '<div class="teacher-avatar">✉</div>' +
+                '<div><h3>New conversation</h3>' +
+                '<p>Select a registered student or teacher.</p></div>';
+            return;
+        }
+
+        const roleLabel = person.role === 'teacher'
+            ? 'Teacher'
+            : 'Student';
+
+        header.innerHTML =
+            '<div class="teacher-avatar">' +
+                esc(getInitialsSafe(person.name)) +
+            '</div>' +
+            '<div><h3>' + esc(person.name) + '</h3>' +
+            '<p>' + roleLabel +
+                ' · <span style="color:#16804a">🔒 Private direct message</span>' +
+            '</p></div>';
+    }
+
+    async function loadContacts() {
+        const data = await api('/api/messages/contacts');
+
+        people = (data.contacts || []).map(person => ({
+            ...person,
+            id: String(person.id),
+            name: person.name || person.email || 'User',
+            email: person.email || '',
+            role: String(person.role || '').toLowerCase()
+        }));
+
+        if (selected) {
+            selected = people.find(
+                person => String(person.id) === String(selected.id)
+            ) || null;
+        }
+
+        renderList();
+
+        if (selected) {
+            renderHeader(selected);
+        } else if (people.length) {
+            await choosePerson(people[0]);
+        } else {
+            renderHeader(null);
+            renderMessages();
+        }
+    }
+
+    async function loadThread() {
+        if (!selected || !currentId || loadingThread) return;
+
+        const selectedId = String(selected.id);
+        const requestId = ++threadRequestId;
+
+        loadingThread = true;
+
+        try {
+            const data = await api(
+                '/api/messages/' + encodeURIComponent(selectedId)
+            );
+
+            if (
+                requestId !== threadRequestId ||
+                !selected ||
+                String(selected.id) !== selectedId
+            ) {
+                return;
+            }
+
+            const items = data.messages || [];
+
+            lastMessages[selectedId] = items.length
+                ? String(items[items.length - 1].message).slice(0, 60)
+                : '';
+
+            renderMessages(items);
+            renderList();
+        } catch (error) {
+            if (requestId === threadRequestId) {
+                showError(error.message);
+            }
+        } finally {
+            if (requestId === threadRequestId) {
+                loadingThread = false;
+            }
+        }
+    }
+
+    async function choosePerson(person) {
+        if (!person) return;
+
+        selected = person;
+        threadRequestId++;
+        loadingThread = false;
+
+        renderHeader(person);
+        renderList();
+
+        input.placeholder = 'Message ' + person.name + '...';
+        input.disabled = false;
+        send.disabled = false;
+
+        renderMessages([]);
+        await loadThread();
+    }
+
+    async function refreshForCurrentUser() {
+        current = typeof getCurrentUser === 'function'
+            ? getCurrentUser()
+            : null;
+
+        const newId = getId(current);
+
+        if (!current || !newId) {
+            currentId = '';
+            people = [];
+            selected = null;
+            lastMessages = {};
+            threadRequestId++;
+
+            input.value = '';
+            input.disabled = true;
+            send.disabled = true;
+            list.innerHTML = '';
+
+            renderHeader(null);
+            renderMessages([]);
+            return;
+        }
+
+        const accountChanged = newId !== currentId;
+        currentId = newId;
+
+        if (accountChanged) {
+            selected = null;
+            lastMessages = {};
+        }
+
+        try {
+            await loadContacts();
+        } catch (error) {
+            showError(error.message);
+        }
+    }
+
+    window.refreshPortalMessaging = refreshForCurrentUser;
+
+    if (search) {
+        search.addEventListener('input', renderList);
+    }
+
+    form.addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const text = input.value.trim();
+
+        if (!text || !selected || sending || !currentId) return;
+
+        const recipientId = String(selected.id);
+
+        sending = true;
+        send.disabled = true;
+
+        try {
+            await api(
+                '/api/messages/' + encodeURIComponent(recipientId),
+                {
+                    method: 'POST',
+                    body: JSON.stringify({ message: text })
+                }
+            );
+
+            input.value = '';
+
+            await loadThread();
+            await loadContacts();
+
+            input.focus();
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            sending = false;
+            send.disabled = !currentId || !selected;
+        }
     });
-    // Refresh messages when the account changes in another tab/window of this browser.
-    window.addEventListener('storage',e=>{if(e.key===storageKey){renderList();renderMessages()}});
+
+    // Refresh the open conversation to receive messages from another account.
+    setInterval(() => {
+        const latestUser = typeof getCurrentUser === 'function'
+            ? getCurrentUser()
+            : null;
+
+        if (getId(latestUser) !== currentId) {
+            refreshForCurrentUser();
+        } else if (currentId && selected && !document.hidden) {
+            loadThread();
+        }
+    }, 4000);
+
     refreshForCurrentUser();
-  }
-  document.addEventListener('DOMContentLoaded',()=>{addProfileControls();addHomeworkDetails();makeHomeworkButtons();renderCustomHomework();addSolutions();initTeacherMessages()});
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    addProfileControls();
+    addHomeworkDetails();
+    makeHomeworkButtons();
+    renderCustomHomework();
+    addSolutions();
+    initTeacherMessages();
+});
 
 (function initClassLessonPlans(){
   const storageKey='llcc_class_lesson_plans_v1';
