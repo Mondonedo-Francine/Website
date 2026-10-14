@@ -56,19 +56,32 @@ App\\Models\\User::create([
 
 The User model hashes passwords automatically. Do not use the example password for a real account.
 
+## Database-backed features in this branch
+
+Run migrations before testing the new endpoints:
+
+```bash
+php artisan migrate
+php artisan test
+```
+
+- **Attendance:** teachers can load the available demo classes, view a class/date, save each student's status, and retrieve recent save history through authenticated Laravel endpoints.
+- **Homework submissions:** students can submit homework to the database and see their own submissions; teachers can review submitted work. The server derives the student account from the signed-in session rather than accepting a student ID from the browser.
+- **Authorization:** the attendance endpoints require a teacher account. Homework submission creation requires a student account. Students only receive their own submissions.
+
 ## Important limitations
 
-**This is a frontend demonstration, not a production-ready student information system.**
+**This is still a prototype, not a production-ready student information system.**
 
-- The login, registration, and logout flows now use Laravel sessions and hashed passwords. However, attendance, homework, lesson plans, notices, and messages still have frontend features that use browser `localStorage`; those records are not yet shared between devices or accounts.
-- Server-side authorization and database persistence for each academic feature are not yet complete. Hiding a page or button in JavaScript is not a security boundary; do not use real student records until each feature is moved behind authorized Laravel endpoints.
+- The attendance roster is still a sample roster defined in the application. It is not yet linked to real enrolled student accounts or official class assignments.
+- Lesson plans, notices, and messaging still use browser `localStorage`; those features are not shared across devices and are not protected by server-side authorization yet.
 - The “Forgot Password?” link does not reveal stored passwords. A secure email-based password reset flow still needs to be configured.
-- Old demo accounts saved in browser storage are no longer accepted as authentication. Use the new registration flow or create a teacher account through Tinker.
+- Old demo accounts saved in browser storage are no longer accepted as authentication. Use the registration flow or create a teacher account through Tinker.
+- Do not enter real student records until class enrollment, teacher-to-class assignments, and all remaining academic features are moved behind authorized server endpoints and tested.
 
 ## Recommended next steps
 
-1. Move authentication to Laravel's server-side authentication system and hash passwords.
-2. Add database migrations and models for users, classes, attendance, homework submissions, lesson plans, notices, and messages.
-3. Enforce student/teacher permissions in middleware, policies, and controller validation.
-4. Add automated tests for authentication, permissions, and saving/retrieving records.
-5. Test the layout and key workflows on mobile, tablet, and desktop before deployment.
+1. Connect class rosters to actual student accounts and assign teachers to classes.
+2. Move lesson plans and assignment publishing to the database, then link homework submissions to those assignments.
+3. Move notices and messages to authorized server-side endpoints.
+4. Complete automated tests and manually verify the workflows on mobile, tablet, and desktop before deployment.
