@@ -774,7 +774,7 @@ async function renderCustomHomework() {
                     const action = document.createElement("td");
                     const statusSelect = document.createElement("select");
                     statusSelect.setAttribute("aria-label", "Homework completion status");
-                    [["Submitted", "Submitted"], ["Done", "Done"], ["Not Done", "Not Done"]].forEach(([value, label]) => {
+                    [["Submitted", "Submitted"], ["Not Submitted", "Not Submitted"], ["Done", "Done"], ["Not Done", "Not Done"]].forEach(([value, label]) => {
                         const option = document.createElement("option");
                         option.value = value;
                         option.textContent = label;
@@ -799,7 +799,6 @@ async function renderCustomHomework() {
                             statusSelect.disabled = false;
                         }
                     });
-                    action.appendChild(statusSelect);
                     const view = document.createElement("button");
                     view.type = "button";
                     view.className = "secondary-btn";
