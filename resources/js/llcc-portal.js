@@ -72,6 +72,29 @@ function showMessage(elementId, message, type) {
     element.className = "message " + type;
 }
 
+async function portalApi(path, options = {}) {
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || "";
+    const response = await fetch(path, {
+        ...options,
+        credentials: "same-origin",
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": csrf,
+            ...(options.headers || {})
+        }
+    });
+    let payload = {};
+    try { payload = await response.json(); } catch (error) {}
+    if (!response.ok) {
+        const validationMessage = payload.errors ? Object.values(payload.errors).flat()[0] : null;
+        const error = new Error(validationMessage || payload.message || "The request could not be completed.");
+        error.status = response.status;
+        throw error;
+    }
+    return payload;
+}
+
 /* Demo accounts are no longer created in browser storage. Authentication is handled by Laravel. */
 
 /* =========================================================
@@ -216,6 +239,8 @@ function showApplication(user) {
 }
 
 function updateUserInterface(user) {
+    const addHomeworkButton = document.getElementById("addHomeworkBtn");
+    if (addHomeworkButton) addHomeworkButton.classList.toggle("hidden", !user || user.role !== "student");
     const homeworkNav = document.querySelector('.nav-item[data-page="homework"], .nav-item[data-page="schedule"]');
     if (homeworkNav) {
         homeworkNav.dataset.page = user && user.role === "teacher" ? "schedule" : "homework";
@@ -352,134 +377,166 @@ function renderTeacherCalendar() {
 }
 
 let selectedAttendanceClass = "";
-function attendanceStorageKey(className, date) { return "llcc_attendance_" + className.replace(/[^a-z0-9]/gi, "_") + "_" + date; }
-function setupTeacherAttendance(user) {
+let attendanceDirty = false;
+let attendanceLoadedDate = "";
+let attendanceRosterByClass = {};
+function localDateInputValue() {
+    const now = new Date();
+    return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join("-");
+}
+
+async function setupTeacherAttendance(user) {
     const teacherView = document.getElementById("teacherAttendanceView");
     const studentView = document.getElementById("studentAttendanceView");
     if (!teacherView || !studentView) return;
     const isTeacher = user && user.role === "teacher";
     teacherView.classList.toggle("hidden", !isTeacher);
     studentView.classList.toggle("hidden", isTeacher);
-    if (isTeacher) {
-        const list = document.getElementById("attendanceClassList");
-        list.innerHTML = Object.entries(teacherClasses).map(([className, students]) => `
-            <button type="button" class="contact-card attendance-class-card" data-attendance-class="${className}" style="text-align:left;cursor:pointer;color:inherit;">
-                <div class="contact-icon">▦</div><h3>${className}</h3>
-                <p>${students.length} students<br><span style="color:var(--primary);font-weight:bold;display:inline-block;margin-top:10px;">View Attendance →</span></p>
+    if (!isTeacher) return;
+
+    const list = document.getElementById("attendanceClassList");
+    list.innerHTML = '<p>Loading your classes...</p>';
+    try {
+        const data = await portalApi("/api/attendance/classes");
+        attendanceRosterByClass = Object.fromEntries(data.classes.map(item => [item.class_name, item.students]));
+        list.innerHTML = data.classes.map(item => `
+            <button type="button" class="contact-card attendance-class-card" data-attendance-class="${escapeHTML(item.class_name)}" style="text-align:left;cursor:pointer;color:inherit;">
+                <div class="contact-icon">▦</div><h3>${escapeHTML(item.class_name)}</h3>
+                <p>${item.students.length} students<br><span style="color:var(--primary);font-weight:bold;display:inline-block;margin-top:10px;">View Attendance →</span></p>
             </button>`).join("");
         list.querySelectorAll("[data-attendance-class]").forEach(button => button.addEventListener("click", () => openAttendanceRoster(button.dataset.attendanceClass)));
-        document.getElementById("teacherAttendanceDate").value = new Date().toISOString().slice(0,10);
-        document.getElementById("attendanceRosterPanel").classList.add("hidden");
-        list.closest(".card").classList.remove("hidden");
+    } catch (error) {
+        list.innerHTML = '<p role="alert">Could not load classes. Please refresh and sign in again.</p>';
     }
+
+    document.getElementById("teacherAttendanceDate").value = localDateInputValue();
+    document.getElementById("attendanceRosterPanel").classList.add("hidden");
+    list.closest(".card").classList.remove("hidden");
 }
-function openAttendanceRoster(className) {
+
+async function openAttendanceRoster(className) {
+    if (!attendanceRosterByClass[className]) return;
     selectedAttendanceClass = className;
     document.getElementById("attendanceRosterTitle").textContent = className + " — Student Attendance";
     document.getElementById("attendanceClassList").closest(".card").classList.add("hidden");
     document.getElementById("attendanceRosterPanel").classList.remove("hidden");
-    renderAttendanceRoster();
+    await renderAttendanceRoster();
 }
-let attendanceDirty = false;
-function attendanceDraftKey(className, date) { return "llccAttendanceDraft:" + className + ":" + date; }
-function attendanceHistoryKey(className) { return "llccAttendanceHistory:" + className; }
-function getAttendanceRecords(className, date) {
-    try { return JSON.parse(localStorage.getItem(attendanceStorageKey(className, date)) || "{}"); } catch (e) { return {}; }
-}
-function getAttendanceDraft(className, date) {
-    try { return JSON.parse(localStorage.getItem(attendanceDraftKey(className, date)) || "null"); } catch (e) { return null; }
-}
+
 function updateAttendanceSummary() {
     const selects = [...document.querySelectorAll(".attendance-status-select")];
     const counts = { Present: 0, Absent: 0, Late: 0, Excused: 0 };
     selects.forEach(select => { if (counts[select.value] !== undefined) counts[select.value]++; });
-    const total = selects.length;
-    [["attendanceTotalStudents", total], ["attendancePresentCount", counts.Present], ["attendanceAbsentCount", counts.Absent], ["attendanceLateCount", counts.Late]].forEach(([id, value]) => {
-        const el = document.getElementById(id); if (el) el.textContent = value;
+    [["attendanceTotalStudents", selects.length], ["attendancePresentCount", counts.Present], ["attendanceAbsentCount", counts.Absent], ["attendanceLateCount", counts.Late]].forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
     });
 }
-function renderAttendanceHistory() {
+
+function renderAttendanceHistory(history) {
     const el = document.getElementById("attendanceHistoryList");
-    if (!el || !selectedAttendanceClass) return;
-    let history = [];
-    try { history = JSON.parse(localStorage.getItem(attendanceHistoryKey(selectedAttendanceClass)) || "[]"); } catch (e) {}
-    el.innerHTML = history.length ? history.slice(0,8).map(item =>
-        '<li><strong>' + item.date + '</strong><span>' + item.savedAt + '</span></li>'
-    ).join("") : '<li class="attendance-history-empty">No saved attendance history yet.</li>';
+    if (!el) return;
+    el.innerHTML = history.length ? history.map(item => {
+        const date = String(item.date || "").slice(0, 10);
+        const savedAt = item.saved_at ? new Date(item.saved_at).toLocaleString() : "Saved";
+        return '<li><strong>' + escapeHTML(date) + '</strong><span>' + escapeHTML(savedAt) + '</span></li>';
+    }).join("") : '<li class="attendance-history-empty">No saved attendance history yet.</li>';
 }
-function renderAttendanceRoster() {
+
+async function renderAttendanceRoster() {
     if (!selectedAttendanceClass) return;
-    const date = document.getElementById("teacherAttendanceDate").value || new Date().toISOString().slice(0,10);
-    const saved = getAttendanceRecords(selectedAttendanceClass, date);
-    const draft = getAttendanceDraft(selectedAttendanceClass, date);
-    const records = draft || saved;
-    document.getElementById("teacherAttendanceRoster").innerHTML = teacherClasses[selectedAttendanceClass].map((name, index) => {
-        const id = "LLCC-" + selectedAttendanceClass.replace(/[^a-z0-9]/gi, "") + "-" + String(index+1).padStart(3,"0");
-        const status = records[name] || "Present";
-        return `<tr><td>${index+1}</td><td>${name}</td><td>${id}</td><td><select class="attendance-status-select status-${status.toLowerCase()}" data-student="${name}" aria-label="Attendance status for ${name}"><option ${status==='Present'?'selected':''}>Present</option><option ${status==='Absent'?'selected':''}>Absent</option><option ${status==='Late'?'selected':''}>Late</option><option ${status==='Excused'?'selected':''}>Excused</option></select></td></tr>`;
-    }).join("");
-    document.querySelectorAll(".attendance-status-select").forEach(select => {
-        select.addEventListener("change", () => {
-            select.className = "attendance-status-select status-" + select.value.toLowerCase();
-            const current = {};
-            document.querySelectorAll(".attendance-status-select").forEach(s => current[s.dataset.student] = s.value);
-            try { localStorage.setItem(attendanceDraftKey(selectedAttendanceClass, date), JSON.stringify(current)); } catch (e) {}
-            attendanceDirty = true;
-            const msg = document.getElementById("attendanceSaveMessage");
-            msg.textContent = "Unsaved changes — click Save Attendance to keep these changes.";
-            msg.className = "contact-success attendance-unsaved"; msg.style.display = "block";
-            updateAttendanceSummary();
-        });
-    });
-    const savedMetaKey = attendanceStorageKey(selectedAttendanceClass, date) + ":meta";
-    let meta = null; try { meta = JSON.parse(localStorage.getItem(savedMetaKey) || "null"); } catch (e) {}
+    const dateInput = document.getElementById("teacherAttendanceDate");
+    const date = dateInput.value || localDateInputValue();
+    dateInput.value = date;
     const message = document.getElementById("attendanceSaveMessage");
-    if (draft) {
-        message.textContent = "Recovered unsaved changes for " + date + ". Save to confirm them.";
-        message.className = "contact-success attendance-unsaved"; message.style.display = "block";
-    } else if (meta && meta.savedAt) {
-        message.textContent = "Last saved " + meta.savedAt + " for " + date + ".";
-        message.className = "contact-success attendance-saved"; message.style.display = "block";
-    } else { message.style.display = "none"; }
-    attendanceDirty = !!draft;
-    updateAttendanceSummary();
-    renderAttendanceHistory();
-}
-document.getElementById("teacherAttendanceDate").addEventListener("change", () => {
-    if (attendanceDirty && !confirm("You have unsaved attendance changes. Switch dates and keep a draft for later?")) return;
-    renderAttendanceRoster();
-});
-document.getElementById("backToAttendanceClasses").addEventListener("click", () => {
-    if (attendanceDirty && !confirm("Your changes are not saved. Return to classes anyway? Your draft will be kept in this browser.")) return;
-    document.getElementById("attendanceRosterPanel").classList.add("hidden");
-    document.getElementById("attendanceClassList").closest(".card").classList.remove("hidden");
-    selectedAttendanceClass = "";
-});
-document.getElementById("saveClassAttendance").addEventListener("click", () => {
-    if (!selectedAttendanceClass) return;
-    const date = document.getElementById("teacherAttendanceDate").value || new Date().toISOString().slice(0,10);
-    const records = {};
-    document.querySelectorAll(".attendance-status-select").forEach(select => records[select.dataset.student] = select.value);
-    const savedAt = new Date().toLocaleString();
+    message.textContent = "Loading saved attendance...";
+    message.className = "contact-success";
+    message.style.display = "block";
+
     try {
-        localStorage.setItem(attendanceStorageKey(selectedAttendanceClass, date), JSON.stringify(records));
-        localStorage.setItem(attendanceStorageKey(selectedAttendanceClass, date) + ":meta", JSON.stringify({savedAt}));
-        localStorage.removeItem(attendanceDraftKey(selectedAttendanceClass, date));
-        let history = JSON.parse(localStorage.getItem(attendanceHistoryKey(selectedAttendanceClass)) || "[]");
-        history = [{date, savedAt}, ...history.filter(item => item.date !== date)].slice(0,20);
-        localStorage.setItem(attendanceHistoryKey(selectedAttendanceClass), JSON.stringify(history));
-    } catch (e) {
-        alert("Could not save attendance in this browser. Please check available storage.");
+        const data = await portalApi("/api/attendance?class_name=" + encodeURIComponent(selectedAttendanceClass) + "&date=" + encodeURIComponent(date));
+        document.getElementById("teacherAttendanceRoster").innerHTML = data.records.map((student, index) => {
+            const status = student.status || "Present";
+            return `<tr><td>${index + 1}</td><td>${escapeHTML(student.student_name)}</td><td>${escapeHTML(student.student_code)}</td><td><select class="attendance-status-select status-${status.toLowerCase()}" data-student-code="${escapeHTML(student.student_code)}" aria-label="Attendance status for ${escapeHTML(student.student_name)}"><option ${status === "Present" ? "selected" : ""}>Present</option><option ${status === "Absent" ? "selected" : ""}>Absent</option><option ${status === "Late" ? "selected" : ""}>Late</option><option ${status === "Excused" ? "selected" : ""}>Excused</option></select></td></tr>`;
+        }).join("");
+        document.querySelectorAll(".attendance-status-select").forEach(select => select.addEventListener("change", () => {
+            select.className = "attendance-status-select status-" + select.value.toLowerCase();
+            attendanceDirty = true;
+            message.textContent = "Unsaved changes — click Save Attendance to save them to the database.";
+            message.className = "contact-success attendance-unsaved";
+            updateAttendanceSummary();
+        }));
+        if (data.saved_at) {
+            message.textContent = "Last saved " + new Date(data.saved_at).toLocaleString() + " for " + date + ".";
+            message.className = "contact-success attendance-saved";
+        } else {
+            message.textContent = "No saved attendance for " + date + " yet. Review the statuses and save when ready.";
+            message.className = "contact-success";
+        }
+        message.style.display = "block";
+        attendanceDirty = false;
+        attendanceLoadedDate = date;
+        updateAttendanceSummary();
+        renderAttendanceHistory(data.history || []);
+    } catch (error) {
+        message.textContent = error.message || "Could not load attendance.";
+        message.className = "contact-success attendance-unsaved";
+        message.style.display = "block";
+    }
+}
+
+document.getElementById("teacherAttendanceDate").addEventListener("change", async () => {
+    const dateInput = document.getElementById("teacherAttendanceDate");
+    if (attendanceDirty && !confirm("You have unsaved attendance changes. Discard them and switch dates?")) {
+        dateInput.value = attendanceLoadedDate;
         return;
     }
     attendanceDirty = false;
-    const message = document.getElementById("attendanceSaveMessage");
-    message.textContent = "✓ Attendance saved successfully for " + selectedAttendanceClass + " on " + date + ". Last saved: " + savedAt;
-    message.className = "contact-success attendance-saved"; message.style.display = "block";
-    renderAttendanceHistory();
+    await renderAttendanceRoster();
 });
+
+document.getElementById("backToAttendanceClasses").addEventListener("click", () => {
+    if (attendanceDirty && !confirm("Your attendance changes are not saved. Discard them and return to classes?")) return;
+    document.getElementById("attendanceRosterPanel").classList.add("hidden");
+    document.getElementById("attendanceClassList").closest(".card").classList.remove("hidden");
+    selectedAttendanceClass = "";
+    attendanceDirty = false;
+});
+
+document.getElementById("saveClassAttendance").addEventListener("click", async () => {
+    if (!selectedAttendanceClass) return;
+    const date = document.getElementById("teacherAttendanceDate").value;
+    const records = [...document.querySelectorAll(".attendance-status-select")].map(select => ({
+        student_code: select.dataset.studentCode,
+        status: select.value
+    }));
+    const button = document.getElementById("saveClassAttendance");
+    const message = document.getElementById("attendanceSaveMessage");
+    button.disabled = true;
+    try {
+        const result = await portalApi("/api/attendance", {
+            method: "PUT",
+            body: JSON.stringify({ class_name: selectedAttendanceClass, date, records })
+        });
+        attendanceDirty = false;
+        message.textContent = "✓ " + result.message + " for " + selectedAttendanceClass + " on " + date + ".";
+        message.className = "contact-success attendance-saved";
+        await renderAttendanceRoster();
+        showToast("Attendance saved to the database.");
+    } catch (error) {
+        message.textContent = error.message || "Could not save attendance.";
+        message.className = "contact-success attendance-unsaved";
+    } finally {
+        button.disabled = false;
+        message.style.display = "block";
+    }
+});
+
 window.addEventListener("beforeunload", event => {
-    if (attendanceDirty) { event.preventDefault(); event.returnValue = ""; }
+    if (attendanceDirty) {
+        event.preventDefault();
+        event.returnValue = "";
+    }
 });
 
 /* =========================================================
@@ -606,7 +663,7 @@ document.getElementById("profileForm").addEventListener("submit", function(event
 });
 
 /* =========================================================
-   HOMEWORK
+   HOMEWORK SUBMISSIONS (SAVED BY LARAVEL)
 ========================================================= */
 
 document.getElementById("addHomeworkBtn").addEventListener("click", function() {
@@ -617,69 +674,106 @@ document.getElementById("cancelHomeworkBtn").addEventListener("click", function(
     document.getElementById("homeworkFormCard").classList.add("hidden");
 });
 
-document.getElementById("homeworkForm").addEventListener("submit", function(event) {
+document.getElementById("homeworkForm").addEventListener("submit", async function(event) {
     event.preventDefault();
-
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
     const submittingUser = getCurrentUser();
-    const homeworkSubject = document.getElementById("homeworkSubject").value;
-    const homeworkTitle = document.getElementById("homeworkTitle").value.trim();
-    const publishedActivities = JSON.parse(localStorage.getItem("llcc_class_lesson_plans_v1") || "[]");
-    const matchedActivity = publishedActivities.find(activity => {
-        const sameTitle = String(activity.title || "").trim().toLowerCase() === homeworkTitle.toLowerCase();
-        const sameSubject = String(activity.subject || "").trim().toLowerCase() === homeworkSubject.toLowerCase();
-        const sameClass = !submittingUser?.className || activity.targetClass === "All Classes" || activity.targetClass === submittingUser.className;
-        return sameTitle && sameSubject && sameClass;
-    });
-    const homework = {
-        id: Date.now(),
-        subject: homeworkSubject,
-        title: homeworkTitle,
-        description: document.getElementById("homeworkDescription").value,
-        status: "Submitted",
-        date: new Date().toLocaleDateString(),
-        studentId: String(submittingUser?.id || submittingUser?.email || submittingUser?.name || "unknown-student"),
-        studentName: submittingUser?.name || "Student",
-        studentEmail: submittingUser?.email || "",
-        className: submittingUser?.className || matchedActivity?.targetClass || "",
-        activityId: matchedActivity ? String(matchedActivity.id) : ""
+    if (!submittingUser || submittingUser.role !== "student") {
+        showToast("Only student accounts can submit homework.");
+        return;
+    }
+
+    const payload = {
+        subject: document.getElementById("homeworkSubject").value,
+        title: document.getElementById("homeworkTitle").value.trim(),
+        description: document.getElementById("homeworkDescription").value.trim()
     };
-
-    const savedHomework = JSON.parse(
-        localStorage.getItem(CUSTOM_HOMEWORK_KEY) || "[]"
-    );
-
-    savedHomework.push(homework);
-    localStorage.setItem(CUSTOM_HOMEWORK_KEY, JSON.stringify(savedHomework));
-
-    renderCustomHomework();
-
-    document.getElementById("homeworkForm").reset();
-    document.getElementById("homeworkFormCard").classList.add("hidden");
-
-    showToast("Homework submitted successfully.");
+    button.disabled = true;
+    try {
+        await portalApi("/api/homework/submissions", { method: "POST", body: JSON.stringify(payload) });
+        form.reset();
+        document.getElementById("homeworkFormCard").classList.add("hidden");
+        await renderCustomHomework();
+        showToast("Homework submitted successfully.");
+    } catch (error) {
+        showToast(error.message || "Could not submit homework.");
+    } finally {
+        button.disabled = false;
+    }
 });
 
-function renderCustomHomework() {
-    const savedHomework = JSON.parse(localStorage.getItem(CUSTOM_HOMEWORK_KEY) || "[]");
+async function renderCustomHomework() {
     const tableBody = document.getElementById("homeworkTableBody");
     if (!tableBody) return;
-
-    // Remove only previously rendered saved submissions; keep the sample rows.
-    tableBody.querySelectorAll("tr[data-custom-homework='true']").forEach(row => row.remove());
-
-    savedHomework.forEach(homework => {
-        const row = document.createElement("tr");
-        row.dataset.customHomework = "true";
-        row.dataset.homeworkId = String(homework.id);
-        row.innerHTML = `
-            <td>${escapeHTML(homework.subject)}</td>
-            <td>${escapeHTML(homework.title)}</td>
-            <td>${escapeHTML(homework.date || "—")}</td>
-            <td><span class="badge success">${escapeHTML(homework.status || "Submitted")}</span></td>
-            <td><button type="button" class="secondary-btn homework-view-btn" data-homework-id="${escapeHTML(homework.id)}">View</button></td>
-        `;
-        tableBody.appendChild(row);
-    });
+    tableBody.innerHTML = '<tr><td colspan="5">Loading submissions...</td></tr>';
+    try {
+        const data = await portalApi("/api/homework/submissions");
+        window.portalHomeworkSubmissions = data.submissions || [];
+        const teacherTable = document.getElementById("teacherHomeworkSubmissionsTableBody");
+        if (teacherTable) {
+            teacherTable.innerHTML = "";
+            if (!window.portalHomeworkSubmissions.length) {
+                teacherTable.innerHTML = '<tr><td colspan="6">No student submissions yet.</td></tr>';
+            } else {
+                window.portalHomeworkSubmissions.forEach(homework => {
+                    const row = document.createElement("tr");
+                    const student = document.createElement("td");
+                    student.textContent = homework.student?.name || "Student";
+                    const subject = document.createElement("td");
+                    subject.textContent = homework.subject;
+                    const title = document.createElement("td");
+                    title.textContent = homework.title;
+                    const submitted = document.createElement("td");
+                    submitted.textContent = homework.submitted_at ? new Date(homework.submitted_at).toLocaleString() : "—";
+                    const status = document.createElement("td");
+                    status.textContent = homework.status || "Submitted";
+                    const action = document.createElement("td");
+                    const view = document.createElement("button");
+                    view.type = "button";
+                    view.className = "secondary-btn";
+                    view.textContent = "View";
+                    view.addEventListener("click", () => window.viewHomework?.(homework.id, row));
+                    action.appendChild(view);
+                    row.append(student, subject, title, submitted, status, action);
+                    teacherTable.appendChild(row);
+                });
+            }
+        }
+        tableBody.innerHTML = "";
+        if (!window.portalHomeworkSubmissions.length) {
+            tableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><h3>No submissions yet</h3><p>Your database-backed homework submissions will appear here.</p></div></td></tr>';
+            return;
+        }
+        const isTeacher = getCurrentUser()?.role === "teacher";
+        window.portalHomeworkSubmissions.forEach(homework => {
+            const row = document.createElement("tr");
+            row.dataset.customHomework = "true";
+            row.dataset.homeworkId = String(homework.id);
+            const subjectCell = document.createElement("td");
+            subjectCell.textContent = isTeacher && homework.student ? homework.subject + " — " + homework.student.name : homework.subject;
+            const titleCell = document.createElement("td");
+            titleCell.textContent = homework.title;
+            const dateCell = document.createElement("td");
+            dateCell.textContent = homework.submitted_at ? new Date(homework.submitted_at).toLocaleString() : "—";
+            const statusCell = document.createElement("td");
+            const badge = document.createElement("span");
+            badge.className = "badge success";
+            badge.textContent = homework.status || "Submitted";
+            statusCell.appendChild(badge);
+            const actionCell = document.createElement("td");
+            const viewButton = document.createElement("button");
+            viewButton.type = "button";
+            viewButton.className = "secondary-btn homework-view-btn";
+            viewButton.dataset.homeworkId = String(homework.id);
+            viewButton.textContent = "View";
+            actionCell.appendChild(viewButton);
+            row.append(subjectCell, titleCell, dateCell, statusCell, actionCell);
+            tableBody.appendChild(row);
+        });
+    } catch (error) {
+        tableBody.innerHTML = '<tr><td colspan="5">Could not load submissions. Please refresh and sign in again.</td></tr>';
+    }
 }
 
 /* =========================================================
@@ -855,7 +949,7 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
   const oldUpdate=window.updateUserInterface;
   window.updateUserInterface=function(u){if(oldUpdate)oldUpdate(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);addProfileControls()};
   function addHomeworkDetails(){
-    const page=document.getElementById('homeworkPage');
+    const page=document.body;
     if(!page||document.getElementById('homeworkDetailsBox'))return;
     const box=document.createElement('div');
     box.id='homeworkDetailsBox';
@@ -868,14 +962,13 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
     box.addEventListener('click',e=>{if(e.target===box)box.classList.add('hidden')});
   }
   window.viewHomework=function(id,row){
-    const storageKey=typeof CUSTOM_HOMEWORK_KEY!=='undefined'?CUSTOM_HOMEWORK_KEY:'creative_readers_homework';
-    let list=[];try{list=JSON.parse(localStorage.getItem(storageKey)||'[]')}catch(e){list=[]}
+    const list=Array.isArray(window.portalHomeworkSubmissions)?window.portalHomeworkSubmissions:[];
     const h=list.find(x=>String(x.id)===String(id));
     const cells=row?row.querySelectorAll('td'):[];
     const value=(index)=>cells[index]?.innerText?.trim()||'';
     const title=h?.title||value(1)||'Homework Details';
     const subject=h?.subject||value(0);
-    const date=h?.date||value(2);
+    const date=h?.submitted_at?new Date(h.submitted_at).toLocaleString():value(2);
     const status=h?.status||value(3);
     const description=h?.description||'No additional description was saved for this sample assignment.';
     addHomeworkDetails();
@@ -887,18 +980,11 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
     document.getElementById('hdStatus').textContent=status||'—';
     document.getElementById('hdDescription').textContent=description;
     const studentRow=document.getElementById('hdStudentRow');
-    studentRow.classList.toggle('hidden',!h?.studentName);
-    document.getElementById('hdStudent').textContent=h?.studentName||'';
+    studentRow.classList.toggle('hidden',!h?.student);
+    document.getElementById('hdStudent').textContent=h?.student?.name||'';
     const del=document.getElementById('deleteHd');
-    del.classList.toggle('hidden',!h);
-    del.onclick=()=>{
-      if(!h||!confirm('Delete this submitted homework?'))return;
-      const next=list.filter(x=>String(x.id)!==String(id));
-      localStorage.setItem(storageKey,JSON.stringify(next));
-      if(typeof renderCustomHomework==='function')renderCustomHomework();
-      box.classList.add('hidden');
-      if(typeof showToast==='function')showToast('Submission deleted.');
-    };
+    del.classList.add('hidden');
+    del.onclick=null;
     box.classList.remove('hidden');
   };
   function makeHomeworkButtons(){
