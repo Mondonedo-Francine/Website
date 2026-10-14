@@ -723,27 +723,24 @@ document.getElementById("homeworkForm").addEventListener("submit", function(even
 });
 
 function renderCustomHomework() {
-    const savedHomework = JSON.parse(
-        localStorage.getItem(CUSTOM_HOMEWORK_KEY) || "[]"
-    );
-
+    const savedHomework = JSON.parse(localStorage.getItem(CUSTOM_HOMEWORK_KEY) || "[]");
     const tableBody = document.getElementById("homeworkTableBody");
+    if (!tableBody) return;
+
+    // Remove only previously rendered saved submissions; keep the sample rows.
+    tableBody.querySelectorAll("tr[data-custom-homework='true']").forEach(row => row.remove());
 
     savedHomework.forEach(homework => {
         const row = document.createElement("tr");
-
+        row.dataset.customHomework = "true";
+        row.dataset.homeworkId = String(homework.id);
         row.innerHTML = `
             <td>${escapeHTML(homework.subject)}</td>
             <td>${escapeHTML(homework.title)}</td>
-            <td>${escapeHTML(homework.date)}</td>
-            <td><span class="badge success">${escapeHTML(homework.status)}</span></td>
-            <td>
-                <button class="secondary-btn" onclick="showToast('Submission viewed')">
-                    View
-                </button>
-            </td>
+            <td>${escapeHTML(homework.date || "—")}</td>
+            <td><span class="badge success">${escapeHTML(homework.status || "Submitted")}</span></td>
+            <td><button type="button" class="secondary-btn homework-view-btn" data-homework-id="${escapeHTML(homework.id)}">View</button></td>
         `;
-
         tableBody.appendChild(row);
     });
 }
@@ -899,11 +896,70 @@ if (existingUser) {
   const oldUpdate=window.updateUserInterface;
   window.updateUserInterface=function(u){if(oldUpdate)oldUpdate(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);addProfileControls()};
   function addHomeworkDetails(){
-    const table=document.querySelector('#homework table, table'); if(!table||document.getElementById('homeworkDetailsBox'))return;
-    const box=document.createElement('div');box.id='homeworkDetailsBox';box.className='details-box hidden';box.innerHTML='<h3 id="homeworkDetailsTitle">Homework Details</h3><p><b>Subject:</b> <span id="hdSubject"></span></p><p><b>Date:</b> <span id="hdDate"></span></p><p><b>Status:</b> <span id="hdStatus"></span></p><p><b>Description:</b></p><p id="hdDescription"></p><button type="button" class="secondary-btn" id="closeHd">Close</button> <button type="button" class="danger-btn" id="deleteHd">Delete Homework</button>'; table.parentElement.appendChild(box);
+    const page=document.getElementById('homeworkPage');
+    if(!page||document.getElementById('homeworkDetailsBox'))return;
+    const box=document.createElement('div');
+    box.id='homeworkDetailsBox';
+    box.className='details-box hidden';
+    box.setAttribute('role','dialog');
+    box.setAttribute('aria-modal','true');
+    box.innerHTML='<div class="homework-details-content"><h3 id="homeworkDetailsTitle">Homework Details</h3><p><b>Subject:</b> <span id="hdSubject"></span></p><p><b>Due date / submitted:</b> <span id="hdDate"></span></p><p><b>Status:</b> <span id="hdStatus"></span></p><p><b>Description:</b></p><p id="hdDescription" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><p id="hdStudentRow" class="hidden"><b>Submitted by:</b> <span id="hdStudent"></span></p><div class="form-actions"><button type="button" class="secondary-btn" id="closeHd">Close</button><button type="button" class="danger-btn hidden" id="deleteHd">Delete Submission</button></div></div>';
+    page.appendChild(box);
+    document.getElementById('closeHd').addEventListener('click',()=>box.classList.add('hidden'));
+    box.addEventListener('click',e=>{if(e.target===box)box.classList.add('hidden')});
   }
-  window.viewHomework=function(id){const list=JSON.parse(localStorage.getItem(typeof CUSTOM_HOMEWORK_KEY!=='undefined'?CUSTOM_HOMEWORK_KEY:'customHomework')||'[]');const h=list.find(x=>String(x.id)===String(id));if(!h)return;addHomeworkDetails();document.getElementById('homeworkDetailsBox').classList.remove('hidden');document.getElementById('homeworkDetailsTitle').textContent=h.title||'Homework Details';document.getElementById('hdSubject').textContent=h.subject||'';document.getElementById('hdDate').textContent=h.date||'';document.getElementById('hdStatus').textContent=h.status||'';document.getElementById('hdDescription').textContent=h.description||'No description.';document.getElementById('deleteHd').onclick=()=>{if(confirm('Delete this homework?')){const next=list.filter(x=>String(x.id)!==String(id));localStorage.setItem(typeof CUSTOM_HOMEWORK_KEY!=='undefined'?CUSTOM_HOMEWORK_KEY:'customHomework',JSON.stringify(next));location.reload()}}};
-  function makeHomeworkButtons(){document.querySelectorAll('#homeworkPage table tbody tr').forEach((tr,i)=>{if(tr.querySelector('.view-homework-btn'))return;const cells=tr.querySelectorAll('td');if(!cells.length)return;const id=tr.dataset.id||cells[0].dataset.id;if(id||i>=0){const b=document.createElement('button');b.className='secondary-btn view-homework-btn';b.textContent='View';b.onclick=()=>{const list=JSON.parse(localStorage.getItem('customHomework')||'[]');viewHomework((id||list[i]?.id||i))};const td=document.createElement('td');td.appendChild(b);tr.appendChild(td)}})}
+  window.viewHomework=function(id,row){
+    const storageKey=typeof CUSTOM_HOMEWORK_KEY!=='undefined'?CUSTOM_HOMEWORK_KEY:'creative_readers_homework';
+    let list=[];try{list=JSON.parse(localStorage.getItem(storageKey)||'[]')}catch(e){list=[]}
+    const h=list.find(x=>String(x.id)===String(id));
+    const cells=row?row.querySelectorAll('td'):[];
+    const value=(index)=>cells[index]?.innerText?.trim()||'';
+    const title=h?.title||value(1)||'Homework Details';
+    const subject=h?.subject||value(0);
+    const date=h?.date||value(2);
+    const status=h?.status||value(3);
+    const description=h?.description||'No additional description was saved for this sample assignment.';
+    addHomeworkDetails();
+    const box=document.getElementById('homeworkDetailsBox');
+    if(!box)return;
+    document.getElementById('homeworkDetailsTitle').textContent=title;
+    document.getElementById('hdSubject').textContent=subject||'—';
+    document.getElementById('hdDate').textContent=date||'—';
+    document.getElementById('hdStatus').textContent=status||'—';
+    document.getElementById('hdDescription').textContent=description;
+    const studentRow=document.getElementById('hdStudentRow');
+    studentRow.classList.toggle('hidden',!h?.studentName);
+    document.getElementById('hdStudent').textContent=h?.studentName||'';
+    const del=document.getElementById('deleteHd');
+    del.classList.toggle('hidden',!h);
+    del.onclick=()=>{
+      if(!h||!confirm('Delete this submitted homework?'))return;
+      const next=list.filter(x=>String(x.id)!==String(id));
+      localStorage.setItem(storageKey,JSON.stringify(next));
+      if(typeof renderCustomHomework==='function')renderCustomHomework();
+      box.classList.add('hidden');
+      if(typeof showToast==='function')showToast('Submission deleted.');
+    };
+    box.classList.remove('hidden');
+  };
+  function makeHomeworkButtons(){
+    const tableBody=document.getElementById('homeworkTableBody');
+    if(!tableBody||tableBody.dataset.viewHandler==='ready')return;
+    tableBody.dataset.viewHandler='ready';
+    // Use the existing Action column; don't append a duplicate column.
+    tableBody.querySelectorAll('tr').forEach(tr=>{
+      const button=tr.querySelector('td:last-child button');
+      if(button){button.type='button';button.classList.add('homework-view-btn');button.removeAttribute('onclick')}
+    });
+    tableBody.addEventListener('click',event=>{
+      const button=event.target.closest('.homework-view-btn, td:last-child button');
+      if(!button)return;
+      const row=button.closest('tr');
+      if(!row)return;
+      event.preventDefault();
+      window.viewHomework(button.dataset.homeworkId||row.dataset.homeworkId||'',row);
+    });
+  }
   function addSolutions(){
     const page=[...document.querySelectorAll('.page')].find(x=>/solutions/i.test(x.innerText));if(!page||page.querySelector('.solution-modal'))return;
     const modal=document.createElement('div');modal.className='solution-modal hidden';modal.innerHTML='<div class="modal-card"><h2 id="solutionTitle"></h2><div id="solutionBody"></div><button class="secondary-btn" id="closeSolution">Close</button></div>';page.appendChild(modal);const data={Mathematics:['Review the lesson examples, practice the assigned equations, and check each answer carefully.','1. Write the problem. 2. Show your solution. 3. Simplify the final answer.'],English:['Identify the main idea, supporting details, vocabulary, and grammar patterns in the passage.','Use complete sentences and quote details from the text when explaining your answer.'],Science:['Review the key concepts, definitions, processes, and real-world examples from the lesson.','Explain the process in your own words and include labeled diagrams when needed.']};window.openSolution=function(subject){document.getElementById('solutionTitle').textContent=subject+' Solutions';document.getElementById('solutionBody').innerHTML='<p>'+data[subject][0]+'</p><p><b>Suggested solution guide:</b> '+data[subject][1]+'</p>';modal.classList.remove('hidden')};document.getElementById('closeSolution').onclick=()=>modal.classList.add('hidden');page.querySelectorAll('.solution-open-btn').forEach(b=>{const subject=b.closest('.solution-card')?.querySelector('h2')?.textContent.replace(' Solutions','')||'Mathematics';b.onclick=()=>openSolution(subject)})
