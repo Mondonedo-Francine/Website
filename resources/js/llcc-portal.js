@@ -725,14 +725,23 @@ function refreshHomeworkAssignmentOptions() {
     });
     const current = select.value;
     select.replaceChildren(new Option("Choose an activity sent by your teacher", ""));
-    relevant.forEach(plan => {
-        if (String(plan.subject || "") !== String(document.getElementById("homeworkSubject")?.value || "")) return;
+    // Subject labels can differ slightly between the Homework and Solutions pages
+    // (for example, "Computer" vs "Computer Studies"). Normalize them before filtering.
+    const normalizeSubject = value => {
+        const normalized = String(value || "").trim().toLowerCase().replace(/\\s+/g, " ");
+        if (normalized === "computer" || normalized === "computer studies" || normalized === "computing") return "computer studies";
+        if (normalized === "math" || normalized === "maths" || normalized === "mathematics") return "mathematics";
+        return normalized;
+    };
+    const selectedSubject = normalizeSubject(document.getElementById("homeworkSubject")?.value);
+    const matchingPlans = relevant.filter(plan => normalizeSubject(plan.subject) === selectedSubject);
+    matchingPlans.forEach(plan => {
         const option = new Option(plan.title + " — " + plan.subject, plan.title);
         select.add(option);
     });
     if ([...select.options].some(option => option.value === current)) select.value = current;
-    if (relevant.length === 0) {
-        select.add(new Option("No activities found — check Solutions", ""));
+    if (matchingPlans.length === 0) {
+        select.add(new Option(relevant.length ? "No activities for this subject" : "No activities found — check Solutions", ""));
     }
 }
 document.getElementById("homeworkSubject")?.addEventListener("change", refreshHomeworkAssignmentOptions);
