@@ -1020,7 +1020,7 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
     const bgInput=document.getElementById('profileBackgroundInput');if(bgInput&&!bgInput.dataset.bound){bgInput.dataset.bound='1';bgInput.addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;if(!f.type.startsWith('image/')){alert('Choose an image file.');return}if(f.size>5*1024*1024){alert('Please choose an image smaller than 5 MB.');e.target.value='';return}try{const u=current()||{};u.profileBackground=await readCompressedImage(f,1800,.78);persistUser(u);setProfileBackground(u);showToast('Profile background saved on this browser.')}catch(err){alert(err.message||'Could not save this background.')}})}
   }
   const oldUpdate=window.updateUserInterface;
-  window.updateUserInterface=function(u){if(oldUpdate)oldUpdate(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);setProfileBackground(u);addProfileControls()};
+  window.updateUserInterface=function(u){if(u&&typeof getUsers==='function'){const saved=(getUsers()||[]).find(x=>(x.id&&x.id===u.id)||(x.email&&u.email&&x.email.toLowerCase()===u.email.toLowerCase()));if(saved){if(!u.profilePicture&&saved.profilePicture)u={...u,profilePicture:saved.profilePicture};if(!u.profileBackground&&saved.profileBackground)u={...u,profileBackground:saved.profileBackground};}}if(oldUpdate)oldUpdate(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);setProfileBackground(u);addProfileControls()};
   
 function addHomeworkDetails() {
     const existingBox = document.getElementById('homeworkDetailsBox');
