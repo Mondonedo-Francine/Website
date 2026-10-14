@@ -41,7 +41,7 @@ class DirectMessageController extends Controller
 
         abort_if($current->id === $user->id, 422, 'You cannot message yourself.');
         abort_unless(
-            in_array($user->role, ['student', 'teacher'], true),
+            in_array(strtolower((string) $user->role), ['student', 'teacher'], true),
             404,
             'User not found.'
         );
@@ -79,7 +79,7 @@ class DirectMessageController extends Controller
 
         abort_if($current->id === $user->id, 422, 'You cannot message yourself.');
         abort_unless(
-            in_array($user->role, ['student', 'teacher'], true),
+            in_array(strtolower((string) $user->role), ['student', 'teacher'], true),
             404,
             'User not found.'
         );
