@@ -686,16 +686,42 @@
                         </table>
                     </div>
                 </div>
-                <div class="table-card" style="margin-top:22px;">
-                    <div class="card-header"><h3>Student Homework Submissions</h3><span class="badge info">Teacher</span></div>
-                    <p style="color:var(--muted);font-size:13px;margin:-6px 0 16px;">Submissions saved by students appear here.</p>
-                    <div style="overflow-x:auto;">
-                        <table aria-label="Student homework submissions">
-                            <thead><tr><th>Student</th><th>Subject</th><th>Assignment</th><th>Submitted</th><th>Status</th><th>Action</th></tr></thead>
-                            <tbody id="teacherHomeworkSubmissionsTableBody"><tr><td colspan="6">Loading submissions...</td></tr></tbody>
-                        </table>
-                    </div>
-                </div>
+                
+<div class="table-card" style="margin-top:22px;">
+    <div class="card-header">
+        <h3>Student Homework Submissions</h3>
+        <span class="badge info">Teacher</span>
+    </div>
+
+    <p style="color:var(--muted);font-size:13px;margin:-6px 0 16px;">
+        Submissions saved by students appear here.
+    </p>
+
+    <div style="overflow-x:auto;">
+        <table aria-label="Student homework submissions">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Subject</th>
+                    <th>Assignment</th>
+                    <th>Submitted</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+
+            <tbody id="teacherHomeworkSubmissionsTableBody">
+                <tr>
+                    <td colspan="6">Loading submissions...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Homework details appear here, directly below the submissions card -->
+<div id="homeworkDetailsContainer"></div>
+
             </section>
 
             <!-- RESULTS PAGE -->

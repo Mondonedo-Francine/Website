@@ -953,19 +953,190 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
   }
   const oldUpdate=window.updateUserInterface;
   window.updateUserInterface=function(u){if(oldUpdate)oldUpdate(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);addProfileControls()};
-  function addHomeworkDetails(){
-    const page=document.body;
-    if(!page||document.getElementById('homeworkDetailsBox'))return;
-    const box=document.createElement('div');
-    box.id='homeworkDetailsBox';
-    box.className='details-box hidden';
-    box.setAttribute('role','dialog');
-    box.setAttribute('aria-modal','true');
-    box.innerHTML='<div class="homework-details-content"><h3 id="homeworkDetailsTitle">Homework Details</h3><p><b>Subject:</b> <span id="hdSubject"></span></p><p><b>Due date / submitted:</b> <span id="hdDate"></span></p><p><b>Status:</b> <span id="hdStatus"></span></p><p><b>Description:</b></p><p id="hdDescription" style="white-space:pre-wrap;overflow-wrap:anywhere"></p><p id="hdStudentRow" class="hidden"><b>Submitted by:</b> <span id="hdStudent"></span></p><div class="form-actions"><button type="button" class="secondary-btn" id="closeHd">Close</button><button type="button" class="danger-btn hidden" id="deleteHd">Delete Submission</button></div></div>';
-    page.appendChild(box);
-    document.getElementById('closeHd').addEventListener('click',()=>box.classList.add('hidden'));
-    box.addEventListener('click',e=>{if(e.target===box)box.classList.add('hidden')});
-  }
+  
+function addHomeworkDetails() {
+    const existingBox = document.getElementById('homeworkDetailsBox');
+
+    // If the box already exists, ensure it is in the correct location.
+    const submissionsBody = document.getElementById(
+        'teacherHomeworkSubmissionsTableBody'
+    );
+
+    const submissionsCard = submissionsBody?.closest('.table-card');
+
+    if (existingBox) {
+        if (submissionsCard && existingBox.parentElement !== submissionsCard.parentElement) {
+            submissionsCard.insertAdjacentElement('afterend', existingBox);
+        }
+        return;
+    }
+
+    const box = document.createElement('div');
+
+    box.id = 'homeworkDetailsBox';
+    box.className = 'details-box hidden';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+
+    box.innerHTML = `
+        <div class="homework-details-content">
+            <h3 id="homeworkDetailsTitle">Homework Details</h3>
+
+            <p><b>Subject:</b> <span id="hdSubject"></span></p>
+            <p><b>Due date / submitted:</b> <span id="hdDate"></span></p>
+            <p><b>Status:</b> <span id="hdStatus"></span></p>
+
+            <p><b>Description:</b></p>
+            <p id="hdDescription" style="white-space:pre-wrap;overflow-wrap:anywhere"></p>
+
+            <p id="hdStudentRow" class="hidden">
+                <b>Submitted by:</b> <span id="hdStudent"></span>
+            </p>
+
+            <div class="form-actions">
+                <button type="button" class="secondary-btn" id="closeHd">
+                    Close
+                </button>
+
+                <button type="button" class="danger-btn hidden" id="deleteHd">
+                    Delete Submission
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Place the details box immediately after the submissions card.
+    if (submissionsCard) {
+        submissionsCard.insertAdjacentElement('afterend', box);
+    } else {
+        // Fallback if the submissions card is not available yet.
+        document.body.appendChild(box);
+    }
+
+    document.getElementById('closeHd').addEventListener('click', () => {
+        box.classList.add('hidden');
+    });
+
+    box.addEventListener('click', event => {
+        if (event.target === box) {
+            box.classList.add('hidden');
+        }
+    });
+}
+
+    
+function addHomeworkDetails() {
+    const container = document.getElementById('homeworkDetailsContainer');
+    const submissionsBody = document.getElementById(
+        'teacherHomeworkSubmissionsTableBody'
+    );
+
+    // Find the correct location for the homework details.
+    const submissionsCard = submissionsBody?.closest('.table-card');
+
+    if (!container) {
+        console.error(
+            'homeworkDetailsContainer was not found. Add it to your HTML first.'
+        );
+        return;
+    }
+
+    // Ensure the container is placed directly after the submissions card.
+    if (
+        submissionsCard &&
+        container.previousElementSibling !== submissionsCard
+    ) {
+        submissionsCard.insertAdjacentElement('afterend', container);
+    }
+
+    // Reuse the existing details box if it has already been created.
+    let box = document.getElementById('homeworkDetailsBox');
+
+    if (box) {
+        if (box.parentElement !== container) {
+            container.appendChild(box);
+        }
+        return;
+    }
+
+    // Create the details box.
+    box = document.createElement('div');
+    box.id = 'homeworkDetailsBox';
+    box.className = 'details-box hidden';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-labelledby', 'homeworkDetailsTitle');
+
+    box.innerHTML = `
+        <div class="homework-details-content">
+            <h3 id="homeworkDetailsTitle">Homework Details</h3>
+
+            <p>
+                <b>Subject:</b>
+                <span id="hdSubject"></span>
+            </p>
+
+            <p>
+                <b>Due date / submitted:</b>
+                <span id="hdDate"></span>
+            </p>
+
+            <p>
+                <b>Status:</b>
+                <span id="hdStatus"></span>
+            </p>
+
+            <p><b>Description:</b></p>
+
+            <p
+                id="hdDescription"
+                style="white-space:pre-wrap;overflow-wrap:anywhere"
+            ></p>
+
+            <p id="hdStudentRow" class="hidden">
+                <b>Submitted by:</b>
+                <span id="hdStudent"></span>
+            </p>
+
+            <div class="form-actions">
+                <button
+                    type="button"
+                    class="secondary-btn"
+                    id="closeHd"
+                >
+                    Close
+                </button>
+
+                <button
+                    type="button"
+                    class="danger-btn hidden"
+                    id="deleteHd"
+                >
+                    Delete Submission
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Put the details box inside the dedicated HTML container.
+    container.appendChild(box);
+
+    // Close button.
+    document.getElementById('closeHd').addEventListener('click', () => {
+        box.classList.add('hidden');
+    });
+
+    // Close when clicking the backdrop.
+    box.addEventListener('click', event => {
+        if (event.target === box) {
+            box.classList.add('hidden');
+        }
+    });
+
+    console.log('Homework details box initialized successfully.');
+}
+
+
   window.viewHomework=function(id,row){
     const list=Array.isArray(window.portalHomeworkSubmissions)?window.portalHomeworkSubmissions:[];
     const h=list.find(x=>String(x.id)===String(id));
@@ -1486,72 +1657,184 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ===== Original inline script block 3 ===== */
 
 /* Teacher Results: render activities created in Solutions and count unique student submissions. */
-(function initTeacherActivityResults(){
-  const plansKey = 'llcc_class_lesson_plans_v1';
-  const submissionsKey = 'creative_readers_homework';
-  const studentCard = document.getElementById('studentResultsCard');
-  const teacherCard = document.getElementById('teacherResultsCard');
-  const body = document.getElementById('teacherResultsTableBody');
-  const description = document.getElementById('resultsPageDescription');
-  if (!studentCard || !teacherCard || !body) return;
 
-  const safeParse = (key) => { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (_) { return []; } };
-  const esc = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  const fmtDate = value => {
-    if (!value) return 'Not set';
-    const parts = String(value).split('-');
-    if (parts.length === 3) {
-      const date = new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
-      if (!Number.isNaN(date.getTime())) return date.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+/* Teacher Results: count database-backed homework submissions. */
+(function initTeacherActivityResults() {
+    const plansKey = 'llcc_class_lesson_plans_v1';
+    const studentCard = document.getElementById('studentResultsCard');
+    const teacherCard = document.getElementById('teacherResultsCard');
+    const body = document.getElementById('teacherResultsTableBody');
+    const description = document.getElementById('resultsPageDescription');
+
+    if (!studentCard || !teacherCard || !body) return;
+
+    const safeParse = key => {
+        try {
+            return JSON.parse(localStorage.getItem(key) || '[]');
+        } catch (_) {
+            return [];
+        }
+    };
+
+    const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[ch]));
+
+    const fmtDate = value => {
+        if (!value) return 'Not set';
+
+        const parts = String(value).split('-');
+
+        if (parts.length === 3) {
+            const date = new Date(
+                Number(parts[0]),
+                Number(parts[1]) - 1,
+                Number(parts[2])
+            );
+
+            if (!Number.isNaN(date.getTime())) {
+                return date.toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+            }
+        }
+
+        return String(value);
+    };
+
+    async function render(user = null) {
+        user = user || (
+            typeof getCurrentUser === 'function'
+                ? getCurrentUser()
+                : null
+        );
+
+        const isTeacher = !!user && user.role === 'teacher';
+
+        studentCard.classList.toggle('hidden', isTeacher);
+        teacherCard.classList.toggle('hidden', !isTeacher);
+
+        if (description) {
+            description.textContent = isTeacher
+                ? 'Review activities sent to your classes and track student submissions.'
+                : 'Check your examination results and grades.';
+        }
+
+        if (!isTeacher) return;
+
+        const plans = safeParse(plansKey).filter(plan =>
+            String(plan.teacherEmail || '').toLowerCase() ===
+            String(user.email || '').toLowerCase()
+        );
+
+        if (!plans.length) {
+            body.innerHTML =
+                '<tr><td colspan="5">' +
+                '<div class="empty-state">' +
+                '<h3>No activities sent yet</h3>' +
+                '<p>Activities you send from Solutions will appear here with their due dates and submission counts.</p>' +
+                '</div></td></tr>';
+            return;
+        }
+
+        body.innerHTML =
+            '<tr><td colspan="5">Loading database submissions...</td></tr>';
+
+        try {
+            const data = await portalApi('/api/homework/submissions');
+            const submissions = data.submissions || [];
+
+            body.innerHTML = plans.slice().reverse().map(plan => {
+                const planTitle = String(plan.title || '')
+                    .trim()
+                    .toLowerCase();
+
+                const planSubject = String(plan.subject || '')
+                    .trim()
+                    .toLowerCase();
+
+                const matching = submissions.filter(submission => {
+                    const sameTitle = String(submission.title || '')
+                        .trim()
+                        .toLowerCase() === planTitle;
+
+                    const sameSubject = String(submission.subject || '')
+                        .trim()
+                        .toLowerCase() === planSubject;
+
+                    const studentClass = submission.student?.class_name;
+                    const targetClass = plan.targetClass || '';
+
+                    const sameClass =
+                        targetClass === 'All Classes' ||
+                        studentClass === targetClass;
+
+                    return sameTitle && sameSubject && sameClass;
+                });
+
+                const uniqueStudents = new Set(
+                    matching.map(submission =>
+                        String(submission.student?.id ?? submission.id)
+                    )
+                );
+
+                const count = uniqueStudents.size;
+
+                return '<tr>' +
+                    '<td>' + esc(plan.subject || '—') + '</td>' +
+                    '<td>' + esc(plan.title || 'Untitled activity') + '</td>' +
+                    '<td>' + esc(fmtDate(plan.dueDate || '')) + '</td>' +
+                    '<td><span class="badge info">' +
+                        esc(plan.targetClass || '—') +
+                    '</span></td>' +
+                    '<td><span class="badge ' +
+                        (count ? 'success' : 'warning') + '">' +
+                        count +
+                        (count === 1 ? ' student' : ' students') +
+                        ' turned in</span></td>' +
+                    '</tr>';
+            }).join('');
+        } catch (error) {
+            body.innerHTML =
+                '<tr><td colspan="5">' +
+                '<p>Could not load submission results. Please refresh and sign in again.</p>' +
+                '</td></tr>';
+
+            console.error('Could not load teacher results:', error);
+        }
     }
-    return String(value);
-  };
-  function render(user = null) {
-    user = user || (typeof getCurrentUser === 'function' ? getCurrentUser() : null);
-    const isTeacher = !!user && user.role === 'teacher';
-    studentCard.classList.toggle('hidden', isTeacher);
-    teacherCard.classList.toggle('hidden', !isTeacher);
-    if (description) description.textContent = isTeacher
-      ? 'Review activities sent to your classes and track student submissions.'
-      : 'Check your examination results and grades.';
-    if (!isTeacher) return;
 
-    const allPlans = safeParse(plansKey);
-    const plans = allPlans.filter(plan => String(plan.teacherEmail || '').toLowerCase() === String(user.email || '').toLowerCase());
-    const submissions = safeParse(submissionsKey);
-    if (!plans.length) {
-      body.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">▤</div><h3>No activities sent yet</h3><p>Activities you send from Solutions will appear here with their due dates and submission counts.</p></div></td></tr>';
-      return;
+    const originalUpdateUserInterface = window.updateUserInterface;
+
+    if (
+        typeof originalUpdateUserInterface === 'function' &&
+        !originalUpdateUserInterface.__resultsWrapped
+    ) {
+        const wrapped = function(user) {
+            originalUpdateUserInterface(user);
+            render(user);
+        };
+
+        wrapped.__resultsWrapped = true;
+        window.updateUserInterface = wrapped;
     }
-    body.innerHTML = plans.slice().reverse().map(plan => {
-      const matching = submissions.filter(sub => {
-        const sameActivityId = sub.activityId && String(sub.activityId) === String(plan.id);
-        const sameLegacyTitle = !sub.activityId && String(sub.title || '').trim().toLowerCase() === String(plan.title || '').trim().toLowerCase() && String(sub.subject || '').trim().toLowerCase() === String(plan.subject || '').trim().toLowerCase();
-        const sameClass = !sub.className || plan.targetClass === 'All Classes' || sub.className === plan.targetClass;
-        return (sameActivityId || sameLegacyTitle) && sameClass;
-      });
-      const uniqueStudents = new Set(matching.map(sub => String(sub.studentId || sub.studentEmail || sub.studentName || sub.id)));
-      const count = uniqueStudents.size;
-      return '<tr>' +
-        '<td>' + esc(plan.subject || '—') + '</td>' +
-        '<td>' + esc(plan.title || 'Untitled activity') + '</td>' +
-        '<td>' + esc(fmtDate(plan.dueDate || '')) + '</td>' +
-        '<td><span class="badge info">' + esc(plan.targetClass || '—') + '</span></td>' +
-        '<td><span class="badge ' + (count ? 'success' : 'warning') + '">' + count + (count === 1 ? ' student' : ' students') + ' turned in</span></td>' +
-        '</tr>';
-    }).join('');
-  }
 
-  // Called after login/profile updates and when another tab saves activity or submission data.
-  const originalUpdateUserInterface = window.updateUserInterface;
-  if (typeof originalUpdateUserInterface === 'function' && !originalUpdateUserInterface.__resultsWrapped) {
-    const wrapped = function(user) { originalUpdateUserInterface(user); render(user); };
-    wrapped.__resultsWrapped = true;
-    window.updateUserInterface = wrapped;
-  }
-  window.addEventListener('storage', event => {
-    if (!event.key || event.key === plansKey || event.key === submissionsKey) render();
-  });
-  document.querySelectorAll('.nav-item[data-page="results"]').forEach(button => button.addEventListener('click', () => render()));
-  render();
+    window.addEventListener('storage', event => {
+        if (!event.key || event.key === plansKey) {
+            render();
+        }
+    });
+
+    document.querySelectorAll('.nav-item[data-page="results"]')
+        .forEach(button => {
+            button.addEventListener('click', () => render());
+        });
+
+    render();
 })();

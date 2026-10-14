@@ -148,17 +148,27 @@ class PortalDataController extends Controller
     }
 
     public function submissions(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        abort_unless(in_array($user->role, ['student', 'teacher'], true), 403);
+{
+    $user = $request->user();
 
-        $query = HomeworkSubmission::query()->with('student:id,name,email')->latest('submitted_at');
-        if ($user->role === 'student') {
-            $query->where('user_id', $user->id);
-        }
+    abort_unless(
+        in_array($user->role, ['student', 'teacher'], true),
+        403
+    );
 
-        return response()->json([
-            'submissions' => $query->get()->map(fn (HomeworkSubmission $submission) => [
+    $query = HomeworkSubmission::query()
+        ->with('student:id,name,email,class_name')
+        ->latest('submitted_at');
+
+    // Students may only view their own submissions.
+    // Teachers may review all student submissions.
+    if ($user->role === 'student') {
+        $query->where('user_id', $user->id);
+    }
+
+    return response()->json([
+        'submissions' => $query->get()->map(
+            fn (HomeworkSubmission $submission) => [
                 'id' => $submission->id,
                 'subject' => $submission->subject,
                 'title' => $submission->title,
@@ -169,11 +179,12 @@ class PortalDataController extends Controller
                     'id' => $submission->student->id,
                     'name' => $submission->student->name,
                     'email' => $submission->student->email,
+                    'class_name' => $submission->student->class_name,
                 ] : null,
-            ])->all(),
-        ]);
-    }
-
+            ]
+        )->all(),
+    ]);
+}
     public function submitHomework(Request $request): JsonResponse
     {
         $this->requireRole($request, 'student');
