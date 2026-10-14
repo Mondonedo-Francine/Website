@@ -1703,8 +1703,12 @@ function initTeacherMessages() {
         }
     }
 
-    async function loadThread() {
-        if (!selected || !currentId || loadingThread) return;
+    async function loadThread(force = false) {
+        // A polling request can already be in flight when the user sends a
+        // message. Allow the post-send refresh to supersede that request so
+        // the newly saved message appears immediately instead of waiting for
+        // the next four-second poll.
+        if (!selected || !currentId || (loadingThread && !force)) return;
 
         const selectedId = String(selected.id);
         const requestId = ++threadRequestId;
@@ -1829,7 +1833,7 @@ function initTeacherMessages() {
 
             input.value = '';
 
-            await loadThread();
+            await loadThread(true);
             await loadContacts();
 
             input.focus();
