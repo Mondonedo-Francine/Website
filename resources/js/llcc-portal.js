@@ -648,8 +648,14 @@ document.getElementById("profileForm").addEventListener("submit", function(event
 
     const currentUser = getCurrentUser();
 
+    // Preserve the browser-saved avatar when the profile form saves other fields.
+    const savedPictures = typeof pictureStore === "function" ? pictureStore() : {};
+    const savedPictureKey = typeof pictureIdentity === "function" ? pictureIdentity(currentUser) : "";
+    const savedProfilePicture = currentUser.profilePicture || (savedPictureKey && savedPictures[savedPictureKey]);
+
     const updatedUser = {
         ...currentUser,
+        ...(savedProfilePicture ? { profilePicture: savedProfilePicture } : {}),
         name: document.getElementById("profileFullName").value.trim(),
         email: document.getElementById("profileEmail").value.trim().toLowerCase(),
         phone: document.getElementById("profilePhone").value.trim()
