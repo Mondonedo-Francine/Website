@@ -917,7 +917,7 @@
                             <input id="chatInput" type="text" placeholder="Write a message..." autocomplete="off" disabled required>
                             <button class="primary-btn" type="submit" id="sendChatBtn" disabled>Send</button>
                         </form>
-                        <p class="chat-note">Demo mode: messages are saved in this browser only. Sign in with the other registered account in this same browser to test replies. For real privacy across devices, connect a secure server with account-based access controls.</p>
+                        
                     </section>
                 </div>
             </section>
