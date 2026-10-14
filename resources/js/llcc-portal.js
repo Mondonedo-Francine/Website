@@ -232,6 +232,7 @@ function showApplication(user) {
     setupTeacherAttendance(user);
     renderTeacherDashboard(user);
     renderNotices();
+    refreshStudentRecentActivity();
     renderCustomHomework();
 
     document.getElementById("currentDate").textContent =
@@ -854,14 +855,6 @@ function renderStudentHomeworkResults(submissions = window.portalHomeworkSubmiss
             cell.textContent = value;
             row.appendChild(cell);
         });
-        const action = document.createElement("td");
-        const view = document.createElement("button");
-        view.type = "button";
-        view.className = "secondary-btn";
-        view.textContent = "View";
-        view.addEventListener("click", () => window.viewHomework?.(homework.id, row));
-        action.appendChild(view);
-        row.appendChild(action);
         body.appendChild(row);
     });
 }
@@ -1081,6 +1074,23 @@ function renderNotices() {
     });
 }
 
+/* Refresh dashboard recent activity when notices or notifications change. */
+function refreshStudentRecentActivity() {
+    const user = getCurrentUser();
+    if (user?.role !== "student") return;
+    const heading = Array.from(document.querySelectorAll("h3")).find(node => node.textContent.trim() === "Recent Activity");
+    const card = heading?.closest(".card");
+    if (!card) return;
+    card.querySelectorAll(".activity-item, .student-recent-activity-empty").forEach(node => node.remove());
+    let notices = [];
+    try { notices = JSON.parse(localStorage.getItem(CUSTOM_NOTICES_KEY) || "[]"); } catch (_) {}
+    const notifications = Array.from(document.querySelectorAll(".notification-entry")).map(node => ({ title: node.querySelector("strong")?.textContent || "New notification", date: node.querySelector("small")?.textContent || "Recently", icon: "•" }));
+    const items = notices.map(notice => ({ title: "New notice: " + (notice.title || "Announcement"), date: notice.date || "Recently", icon: "◌" })).concat(notifications).slice(-5).reverse();
+    if (!items.length) { const empty = document.createElement("p"); empty.className = "student-recent-activity-empty"; empty.textContent = "No new activity yet."; card.appendChild(empty); return; }
+    items.forEach(item => { const row = document.createElement("div"); row.className = "activity-item"; const icon = document.createElement("div"); icon.className = "activity-icon"; icon.textContent = item.icon; const content = document.createElement("div"); const title = document.createElement("strong"); title.textContent = item.title; const date = document.createElement("span"); date.textContent = item.date; content.append(title, date); row.append(icon, content); card.appendChild(row); });
+}
+window.addEventListener("storage", event => { if (!event.key || event.key === CUSTOM_NOTICES_KEY || event.key.includes("notification")) { renderNotices(); refreshStudentRecentActivity(); } });
+setInterval(() => { if (!document.hidden) { renderNotices(); refreshStudentRecentActivity(); } }, 5000);
 /* =========================================================
    CONTACT FORM
 ========================================================= */
