@@ -745,6 +745,10 @@ function renderStudentHomeworkResults(submissions = window.portalHomeworkSubmiss
 async function renderCustomHomework() {
     const tableBody = document.getElementById("homeworkTableBody");
     if (!tableBody) return;
+    const currentUser = getCurrentUser();
+    const isTeacher = currentUser?.role === "teacher";
+    document.getElementById("studentHomeworkResultsCard")?.classList.toggle("hidden", isTeacher);
+    document.getElementById("teacherHomeworkSubmissionsCard")?.classList.toggle("hidden", !isTeacher);
     tableBody.innerHTML = '<tr><td colspan="5">Loading submissions...</td></tr>';
     try {
         const data = await portalApi("/api/homework/submissions");
