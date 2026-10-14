@@ -1518,15 +1518,15 @@ function initTeacherMessages() {
         const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-            if (response.status === 401) {
-                throw new Error('Your session has expired. Please sign in again.');
-            }
-
-            if (response.status === 419) {
-                throw new Error('Your security token expired. Refresh the page and sign in again.');
-            }
-
-            throw new Error(data.message || 'The messaging request failed.');
+            const error = new Error(
+                response.status === 401
+                    ? 'Your session has expired. Please sign in again.'
+                    : response.status === 419
+                        ? 'Your security token expired. Refresh the page and sign in again.'
+                        : (data.message || 'The messaging request failed.')
+            );
+            error.status = response.status;
+            throw error;
         }
 
         return data;
@@ -1637,8 +1637,14 @@ function initTeacherMessages() {
                 );
             }).join('')
             : '<div class="empty-state" style="padding:22px">' +
-                'No other student or teacher accounts are registered in this database yet. Register a second account with the Student or Teacher role, then refresh this page.' +
+                (query
+                    ? 'No contacts match your search. Try another name, email, or role.'
+                    : 'No other student or teacher accounts are available for messaging yet.') +
               '</div>';
+
+        list.querySelectorAll('[data-retry-contacts]').forEach(button => {
+            button.addEventListener('click', () => loadContacts());
+        });
 
         list.querySelectorAll('[data-person]').forEach(button => {
             button.addEventListener('click', () => {
@@ -1675,31 +1681,46 @@ function initTeacherMessages() {
     }
 
     async function loadContacts() {
-        const data = await api('/api/messages/contacts');
+        list.innerHTML = '<div class="empty-state" style="padding:22px">Loading contacts…</div>';
 
-        people = (data.contacts || []).map(person => ({
-            ...person,
-            id: String(person.id),
-            name: person.name || person.email || 'User',
-            email: person.email || '',
-            role: String(person.role || '').toLowerCase()
-        }));
+        try {
+            const data = await api('/api/messages/contacts');
 
-        if (selected) {
-            selected = people.find(
-                person => String(person.id) === String(selected.id)
-            ) || null;
-        }
+            people = (Array.isArray(data.contacts) ? data.contacts : [])
+                .filter(person => person && person.id != null && String(person.id) !== currentId)
+                .map(person => ({
+                    ...person,
+                    id: String(person.id),
+                    name: person.name || person.email || 'User',
+                    email: person.email || '',
+                    role: String(person.role || '').toLowerCase()
+                }));
 
-        renderList();
+            if (selected) {
+                selected = people.find(
+                    person => String(person.id) === String(selected.id)
+                ) || null;
+            }
 
-        if (selected) {
-            renderHeader(selected);
-        } else if (people.length) {
-            await choosePerson(people[0]);
-        } else {
-            renderHeader(null);
-            renderMessages();
+            renderList();
+
+            if (selected) {
+                renderHeader(selected);
+            } else if (people.length) {
+                await choosePerson(people[0]);
+            } else {
+                renderHeader(null);
+                renderMessages();
+            }
+        } catch (error) {
+            list.innerHTML =
+                '<div class="empty-state" style="padding:22px">' +
+                    '<h3>Could not load contacts</h3>' +
+                    '<p>' + esc(error.message) + '</p>' +
+                    '<button type="button" class="primary-btn" data-retry-contacts style="margin-top:12px">Try again</button>' +
+                '</div>';
+            list.querySelector('[data-retry-contacts]')?.addEventListener('click', loadContacts);
+            throw error;
         }
     }
 
@@ -1766,9 +1787,17 @@ function initTeacherMessages() {
     }
 
     async function refreshForCurrentUser() {
-        current = typeof getCurrentUser === 'function'
-            ? getCurrentUser()
-            : null;
+        // Ask Laravel which account owns this session. Browser storage can
+        // contain stale account data after switching users or opening another tab.
+        try {
+            const session = await api('/auth/user');
+            current = session.user || null;
+            if (current && typeof saveCurrentUser === 'function') {
+                saveCurrentUser(current);
+            }
+        } catch (error) {
+            current = null;
+        }
 
         const newId = getId(current);
 
@@ -1782,7 +1811,11 @@ function initTeacherMessages() {
             input.value = '';
             input.disabled = true;
             send.disabled = true;
-            list.innerHTML = '';
+            list.innerHTML =
+                '<div class="empty-state" style="padding:22px">' +
+                    '<h3>Sign in to load contacts</h3>' +
+                    '<p>Your Laravel session could not be verified. Please sign in again, then reopen Messages.</p>' +
+                '</div>';
 
             renderHeader(null);
             renderMessages([]);
@@ -1795,12 +1828,14 @@ function initTeacherMessages() {
         if (accountChanged) {
             selected = null;
             lastMessages = {};
+            if (search) search.value = '';
         }
 
         try {
             await loadContacts();
         } catch (error) {
-            showError(error.message);
+            // loadContacts now shows the failure directly in the contact list.
+            console.warn('Messaging contacts could not be loaded:', error.message);
         }
     }
 
