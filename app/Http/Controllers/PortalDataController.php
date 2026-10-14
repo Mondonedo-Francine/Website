@@ -191,7 +191,7 @@ class PortalDataController extends Controller
         $this->requireRole($request, 'teacher');
 
         $data = $request->validate([
-            'status' => ['required', 'in:Done,Not Done'],
+            'status' => ['required', 'in:Submitted,Not Submitted,Done,Not Done'],
         ]);
 
         $submission->update(['status' => $data['status']]);
