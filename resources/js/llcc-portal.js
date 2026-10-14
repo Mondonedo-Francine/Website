@@ -708,6 +708,40 @@ document.getElementById("homeworkForm").addEventListener("submit", async functio
     }
 });
 
+function renderStudentHomeworkResults(submissions = window.portalHomeworkSubmissions || []) {
+    const body = document.getElementById("studentHomeworkResultsBody");
+    if (!body) return;
+    body.replaceChildren();
+    if (!submissions.length) {
+        body.innerHTML = '<tr><td colspan="6">No homework submissions yet.</td></tr>';
+        return;
+    }
+    submissions.forEach(homework => {
+        const row = document.createElement("tr");
+        const values = [
+            homework.subject || "—",
+            homework.title || "—",
+            homework.submitted_at ? new Date(homework.submitted_at).toLocaleString() : "—",
+            homework.status || "Submitted",
+            homework.section || "Not specified"
+        ];
+        values.forEach(value => {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            row.appendChild(cell);
+        });
+        const action = document.createElement("td");
+        const view = document.createElement("button");
+        view.type = "button";
+        view.className = "secondary-btn";
+        view.textContent = "View";
+        view.addEventListener("click", () => window.viewHomework?.(homework.id, row));
+        action.appendChild(view);
+        row.appendChild(action);
+        body.appendChild(row);
+    });
+}
+
 async function renderCustomHomework() {
     const tableBody = document.getElementById("homeworkTableBody");
     if (!tableBody) return;
@@ -734,17 +768,47 @@ async function renderCustomHomework() {
                     const status = document.createElement("td");
                     status.textContent = homework.status || "Submitted";
                     const action = document.createElement("td");
+                    const statusSelect = document.createElement("select");
+                    statusSelect.setAttribute("aria-label", "Homework completion status");
+                    [["Submitted", "Submitted"], ["Done", "Done"], ["Not Done", "Not Done"]].forEach(([value, label]) => {
+                        const option = document.createElement("option");
+                        option.value = value;
+                        option.textContent = label;
+                        statusSelect.appendChild(option);
+                    });
+                    statusSelect.value = ["Submitted", "Done", "Not Done"].includes(homework.status) ? homework.status : "Submitted";
+                    statusSelect.addEventListener("change", async () => {
+                        statusSelect.disabled = true;
+                        try {
+                            await portalApi("/api/homework/submissions/" + homework.id + "/status", {
+                                method: "PATCH",
+                                body: JSON.stringify({ status: statusSelect.value })
+                            });
+                            homework.status = statusSelect.value;
+                            status.textContent = homework.status;
+                            showToast("Homework marked " + homework.status + ".");
+                            renderStudentHomeworkResults(window.portalHomeworkSubmissions);
+                        } catch (error) {
+                            showToast(error.message || "Could not update homework status.");
+                            statusSelect.value = homework.status || "Submitted";
+                        } finally {
+                            statusSelect.disabled = false;
+                        }
+                    });
+                    action.appendChild(statusSelect);
                     const view = document.createElement("button");
                     view.type = "button";
                     view.className = "secondary-btn";
                     view.textContent = "View";
                     view.addEventListener("click", () => window.viewHomework?.(homework.id, row));
                     action.appendChild(view);
+                    action.appendChild(statusSelect);
                     row.append(student, subject, title, submitted, status, action);
                     teacherTable.appendChild(row);
                 });
             }
         }
+        renderStudentHomeworkResults(window.portalHomeworkSubmissions);
         tableBody.innerHTML = "";
         if (!window.portalHomeworkSubmissions.length) {
             tableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><h3>No submissions yet</h3><p>Your database-backed homework submissions will appear here.</p></div></td></tr>';
@@ -1641,7 +1705,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault(); const user=activeUser(); if(!user||user.role!=='teacher'){return;}
     const fileInput=document.getElementById('lessonFile'); const file=fileInput.files[0]; let fileData='';
     if(file){if(file.size>1500000){document.getElementById('lessonPlanFeedback').textContent='Please attach a file smaller than 1.5 MB.';return;}fileData=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result));r.onerror=reject;r.readAsDataURL(file);});}
-    const plans=getPlans(); plans.push({id:Date.now(),title:document.getElementById('lessonTitle').value.trim(),subject:document.getElementById('lessonSubject').value,targetClass:document.getElementById('lessonClass').value,lessonDate:document.getElementById('lessonDate').value,dueDate:document.getElementById('lessonDueDate').value,description:document.getElementById('lessonDescription').value.trim(),fileName:file?file.name:'',fileData,teacherEmail:user.email||'',teacherName:user.name||'Teacher',sentAt:new Date().toLocaleString()});
+    const plans=getPlans(); plans.push({id:Date.now(),title:document.getElementById('lessonTitle').value.trim(),subject:document.getElementById('lessonSubject').value,targetClass:document.getElementById('lessonClass').value,lessonDate:document.getElementById('lessonDate').value,dueDate:document.getElementById('lessonDueDate').value,dueTime:document.getElementById('lessonDueTime').value,description:document.getElementById('lessonDescription').value.trim(),fileName:file?file.name:'',fileData,teacherEmail:user.email||'',teacherName:user.name||'Teacher',sentAt:new Date().toLocaleString()});
     try{localStorage.setItem(storageKey,JSON.stringify(plans));form.reset();document.getElementById('lessonPlanFeedback').textContent='Lesson plan sent to the selected class. Students in that class will see a notification.';render();renderNotifications();}catch(err){document.getElementById('lessonPlanFeedback').textContent='Could not save this lesson plan. Try a smaller attachment.';}
   });
   const oldShow=window.showApplication;
@@ -1698,9 +1762,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!Number.isNaN(date.getTime())) {
                 return date.toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric'
+                    month: 'long', day: 'numeric', year: 'numeric'
                 });
             }
         }
@@ -1789,7 +1851,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return '<tr>' +
                     '<td>' + esc(plan.subject || '—') + '</td>' +
                     '<td>' + esc(plan.title || 'Untitled activity') + '</td>' +
-                    '<td>' + esc(fmtDate(plan.dueDate || '')) + '</td>' +
+                    '<td>' + esc(fmtDate(plan.dueDate || '') + (plan.dueTime ? ' at ' + new Date('2000-01-01T' + plan.dueTime).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : ' (time not set)')) + '</td>' +
                     '<td><span class="badge info">' +
                         esc(plan.targetClass || '—') +
                     '</span></td>' +
