@@ -147,6 +147,28 @@ class PortalDataController extends Controller
         ]);
     }
 
+    public function updateStudentAcademicDetails(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && $user->role === 'student', 403, 'Only student accounts can update student class details.');
+
+        $data = $request->validate([
+            'class_name' => ['required', 'string', 'in:BSIT 1-A,BSIT 1-B,BSIT 2-A,BSIT 2-B,BIT2B,BIT AE3,BIT3AE'],
+            'year_level' => ['required', 'string', 'in:1st Year,2nd Year,3rd Year,4th Year'],
+        ]);
+
+        $user->update($data);
+
+        return response()->json([
+            'message' => 'Student class details saved successfully.',
+            'user' => [
+                'id' => $user->id,
+                'class_name' => $user->class_name,
+                'year_level' => $user->year_level,
+            ],
+        ]);
+    }
+
     public function submissions(Request $request): JsonResponse
 {
     $user = $request->user();
