@@ -1598,6 +1598,24 @@ function initTeacherMessages() {
         messages.scrollTop = messages.scrollHeight;
     }
 
+    
+function studentDetails(person) {
+    if (person.role !== 'student') return '';
+
+    const details = [];
+
+    if (person.year_level) {
+        details.push('Year level: ' + esc(person.year_level));
+    }
+
+    if (person.class_name) {
+        details.push('Section: ' + esc(person.class_name));
+    }
+
+    return details.join(' · ');
+}
+
+
     function renderList() {
         const query = (search?.value || '').trim().toLowerCase();
 
@@ -1620,6 +1638,19 @@ function initTeacherMessages() {
                     ? 'Teacher'
                     : 'Student';
 
+                    const academicDetails = studentDetails(person);
+                    header.innerHTML =
+    '<div class="teacher-avatar">' +
+        esc(getInitialsSafe(person.name)) +
+    '</div>' +
+    '<div><h3>' + esc(person.name) + '</h3>' +
+    (academicDetails
+        ? '<p>' + academicDetails + '</p>'
+        : '') +
+    '<p>' + roleLabel +
+        ' · <span style="color:#16804a">🔒 Private direct message</span>' +
+    '</p></div>';
+
                 return (
                     '<button type="button" class="teacher-option ' +
                         (selected && String(selected.id) === id ? 'active' : '') +
@@ -1628,11 +1659,14 @@ function initTeacherMessages() {
                             esc(getInitialsSafe(person.name)) +
                         '</span>' +
                         '<span>' +
-                            '<strong>' + esc(person.name) + '</strong>' +
-                            '<small>' + roleLabel + ' · ' +
-                                esc(last) +
-                            '</small>' +
-                        '</span>' +
+    '<strong>' + esc(person.name) + '</strong>' +
+    (academicDetails
+        ? '<small>' + academicDetails + '</small>'
+        : '') +
+    '<small>' + roleLabel + ' · ' +
+        esc(last) +
+    '</small>' +
+'</span>' +
                     '</button>'
                 );
             }).join('')
@@ -1896,14 +1930,15 @@ function initTeacherMessages() {
     refreshForCurrentUser();
 }
 
+
 document.addEventListener('DOMContentLoaded', () => {
-    addProfileControls();
     addHomeworkDetails();
     makeHomeworkButtons();
     renderCustomHomework();
     addSolutions();
     initTeacherMessages();
 });
+
 
 (function initClassLessonPlans(){
   const storageKey='llcc_class_lesson_plans_v1';
