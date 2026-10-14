@@ -32,26 +32,38 @@ Requirements: PHP, Composer, Node.js, and npm.
 
 For active frontend development, run `npm run dev` in a second terminal instead of relying on a production build.
 
-## Demo accounts
+## Authentication
 
-The prototype seeds these accounts in the current browser:
+The portal uses Laravel session authentication for login, registration, and logout. Public registration creates student accounts only. Teacher accounts must be created by a trusted administrator.
 
-| Role | Email | Password |
-|---|---|---|
-| Student | student@example.com | 12345 |
-| Teacher | teacher@example.com | 12345 |
+To create a teacher account locally, run:
 
-Choose the matching role on the login screen.
+```bash
+php artisan tinker
+```
+
+Then enter this PHP expression in Tinker (replace the name, email, phone, and password):
+
+```php
+App\\Models\\User::create([
+    'name' => 'Portal Teacher',
+    'email' => 'teacher@example.com',
+    'phone' => '09170000000',
+    'password' => 'ChangeThisPassword123!',
+    'role' => 'teacher',
+]);
+```
+
+The User model hashes passwords automatically. Do not use the example password for a real account.
 
 ## Important limitations
 
 **This is a frontend demonstration, not a production-ready student information system.**
 
-- Login, registration, messaging, attendance, homework, and other demo records are stored in the browser's `localStorage`; they are not shared with other devices or browsers and can be cleared by the browser.
-- Passwords are currently stored as readable browser data. Do not use real passwords or real student information with this prototype.
-- The portal does not yet have server-side authentication, role-based authorization, database-backed records, secure password reset, or server-side validation. Hiding a page or button in JavaScript is not a security boundary.
-- The “Forgot Password?” link intentionally does not reveal stored passwords. A real deployment needs a secure server-side reset flow.
-- Changes made in one browser profile should not be expected to appear for another user or device.
+- The login, registration, and logout flows now use Laravel sessions and hashed passwords. However, attendance, homework, lesson plans, notices, and messages still have frontend features that use browser `localStorage`; those records are not yet shared between devices or accounts.
+- Server-side authorization and database persistence for each academic feature are not yet complete. Hiding a page or button in JavaScript is not a security boundary; do not use real student records until each feature is moved behind authorized Laravel endpoints.
+- The “Forgot Password?” link does not reveal stored passwords. A secure email-based password reset flow still needs to be configured.
+- Old demo accounts saved in browser storage are no longer accepted as authentication. Use the new registration flow or create a teacher account through Tinker.
 
 ## Recommended next steps
 

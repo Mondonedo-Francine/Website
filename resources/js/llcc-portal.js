@@ -72,46 +72,7 @@ function showMessage(elementId, message, type) {
     element.className = "message " + type;
 }
 
-/* =========================================================
-   CREATE DEFAULT DEMO ACCOUNTS
-========================================================= */
-
-function seedDemoUsers() {
-    const users = getUsers();
-
-    if (users.length === 0) {
-        users.push(
-            {
-                id: Date.now(),
-                name: "Demo Student",
-                email: "student@example.com",
-                phone: "01700000000",
-                password: "12345",
-                role: "student"
-            },
-            {
-                id: Date.now() + 1,
-                name: "Demo Teacher",
-                email: "teacher@example.com",
-                phone: "01800000000",
-                password: "12345",
-                role: "teacher"
-            },
-            {
-                id: Date.now() + 2,
-                name: "Demo Guest",
-                email: "guest@example.com",
-                phone: "01900000000",
-                password: "12345",
-                role: "guest"
-            }
-        );
-
-        saveUsers(users);
-    }
-}
-
-seedDemoUsers();
+/* Demo accounts are no longer created in browser storage. Authentication is handled by Laravel. */
 
 /* =========================================================
    AUTHENTICATION VIEW SWITCHING
@@ -138,101 +99,80 @@ document.getElementById("showLogin").addEventListener("click", function(event) {
    LOGIN
 ========================================================= */
 
-document.getElementById("loginForm").addEventListener("submit", function(event) {
+document.getElementById("loginForm").addEventListener("submit", async function(event) {
     event.preventDefault();
-
+    const message = document.getElementById("loginMessage");
     const role = document.getElementById("loginRole").value.trim().toLowerCase();
-    const username = document.getElementById("loginUsername").value.trim().toLowerCase();
+    const username = document.getElementById("loginUsername").value.trim();
     const password = document.getElementById("loginPassword").value;
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || "";
 
-    const users = getUsers();
-
-    const user = users.find(account => {
-        const emailMatches = account.email.toLowerCase() === username;
-        const phoneMatches = account.phone.toLowerCase() === username;
-
-        return (
-            (emailMatches || phoneMatches) &&
-            account.password === password &&
-            account.role === role
-        );
-    });
-
-    if (!user) {
-        showMessage(
-            "loginMessage",
-            "Invalid login details. Use the correct role, email/phone, and password.",
-            "error"
-        );
-        return;
+    try {
+        const response = await fetch("/auth/login", {
+            method: "POST",
+            headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-TOKEN": csrf },
+            credentials: "same-origin",
+            body: JSON.stringify({ username, password, role })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            showMessage("loginMessage", data.message || "Login failed. Check your details and try again.", "error");
+            return;
+        }
+        saveCurrentUser(data.user);
+        showApplication(data.user);
+        document.getElementById("loginForm").reset();
+    } catch (error) {
+        showMessage("loginMessage", "Could not connect to the server. Make sure Laravel is running and try again.", "error");
     }
-
-    saveCurrentUser(user);
-    showApplication(user);
 });
 
 /* =========================================================
    SIGNUP
 ========================================================= */
 
-document.getElementById("signupForm").addEventListener("submit", function(event) {
+document.getElementById("signupForm").addEventListener("submit", async function(event) {
     event.preventDefault();
-
-    const name = document.getElementById("signupName").value.trim();
-    const email = document.getElementById("signupEmail").value.trim().toLowerCase();
-    const phone = document.getElementById("signupPhone").value.trim();
-    const role = document.getElementById("signupRole").value;
     const password = document.getElementById("signupPassword").value;
     const confirmPassword = document.getElementById("signupConfirmPassword").value;
-
     if (password !== confirmPassword) {
         showMessage("signupMessage", "Passwords do not match.", "error");
         return;
     }
 
-    const users = getUsers();
-
-    const alreadyExists = users.some(account =>
-        account.email.toLowerCase() === email ||
-        account.phone === phone
-    );
-
-    if (alreadyExists) {
-        showMessage(
-            "signupMessage",
-            "An account with this email or phone already exists.",
-            "error"
-        );
-        return;
-    }
-
-    const newUser = {
-        id: Date.now(),
-        name,
-        email,
-        phone,
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || "";
+    const payload = {
+        name: document.getElementById("signupName").value.trim(),
+        email: document.getElementById("signupEmail").value.trim().toLowerCase(),
+        phone: document.getElementById("signupPhone").value.trim(),
         password,
-        role
+        password_confirmation: confirmPassword
     };
 
-    users.push(newUser);
-    saveUsers(users);
-
-    showMessage(
-        "signupMessage",
-        "Account created successfully. You can now log in.",
-        "success"
-    );
-
-    document.getElementById("signupForm").reset();
-
-    setTimeout(() => {
-        signupView.classList.add("hidden");
-        loginView.classList.remove("hidden");
-
-        document.getElementById("loginRole").value = role;
-        document.getElementById("loginUsername").value = email;
-    }, 1000);
+    try {
+        const response = await fetch("/auth/register", {
+            method: "POST",
+            headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-TOKEN": csrf },
+            credentials: "same-origin",
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            const firstError = data.errors ? Object.values(data.errors).flat()[0] : null;
+            showMessage("signupMessage", firstError || data.message || "Could not create your account.", "error");
+            return;
+        }
+        showMessage("signupMessage", "Student account created. You can now log in.", "success");
+        document.getElementById("signupForm").reset();
+        document.getElementById("loginRole").value = "student";
+        document.getElementById("loginUsername").value = payload.email;
+        setTimeout(() => {
+            signupView.classList.add("hidden");
+            loginView.classList.remove("hidden");
+        }, 700);
+    } catch (error) {
+        showMessage("signupMessage", "Could not connect to the server. Make sure Laravel is running and try again.", "error");
+    }
 });
 
 /* =========================================================
@@ -843,32 +783,54 @@ if (legacyContactForm) {
    LOGOUT
 ========================================================= */
 
-document.getElementById("logoutBtn").addEventListener("click", function() {
-    localStorage.removeItem(CURRENT_USER_KEY);
-
-    appPage.classList.add("hidden");
-    authPage.classList.remove("hidden");
-
-    document.getElementById("loginForm").reset();
-    document.getElementById("loginMessage").className = "message";
-    document.getElementById("loginMessage").textContent = "";
-
-    openPage("dashboard");
-    showToast("You have been logged out.");
+document.getElementById("logoutBtn").addEventListener("click", async function() {
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || "";
+    try {
+        await fetch("/auth/logout", {
+            method: "POST",
+            headers: { "Accept": "application/json", "X-CSRF-TOKEN": csrf },
+            credentials: "same-origin"
+        });
+    } finally {
+        localStorage.removeItem(CURRENT_USER_KEY);
+        localStorage.removeItem(USERS_KEY);
+        appPage.classList.add("hidden");
+        authPage.classList.remove("hidden");
+        document.getElementById("loginForm").reset();
+        document.getElementById("loginMessage").className = "message";
+        document.getElementById("loginMessage").textContent = "";
+        openPage("dashboard");
+    }
 });
 
 /* =========================================================
-   AUTO LOGIN IF SESSION EXISTS
+   RESTORE SESSION FROM LARAVEL (NOT FROM LOCAL STORAGE)
 ========================================================= */
 
-const existingUser = getCurrentUser();
-
-if (existingUser) {
-    showApplication(existingUser);
-}
-
-;
-
+(async function restoreServerSession() {
+    // Remove browser-only demo accounts and never trust a cached local user as authentication.
+    localStorage.removeItem(USERS_KEY);
+    try {
+        const response = await fetch("/auth/user", {
+            headers: { "Accept": "application/json" },
+            credentials: "same-origin"
+        });
+        if (!response.ok) {
+            localStorage.removeItem(CURRENT_USER_KEY);
+            appPage.classList.add("hidden");
+            authPage.classList.remove("hidden");
+            return;
+        }
+        const data = await response.json();
+        saveCurrentUser(data.user);
+        showApplication(data.user);
+    } catch (error) {
+        localStorage.removeItem(CURRENT_USER_KEY);
+        appPage.classList.add("hidden");
+        authPage.classList.remove("hidden");
+        showMessage("loginMessage", "Unable to verify your session. Check that Laravel is running.", "error");
+    }
+})();
 /* ===== Original inline script block 2 ===== */
 
 (function(){
