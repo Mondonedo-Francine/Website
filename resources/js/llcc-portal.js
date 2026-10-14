@@ -1817,6 +1817,19 @@ function initTeacherMessages() {
             ? getCurrentUser()
             : null;
 
+        // Restore the authenticated Laravel session if browser storage is empty or stale.
+        if (!current || !getId(current)) {
+            try {
+                const session = await api('/auth/user');
+                current = session.user || null;
+                if (current && typeof saveCurrentUser === 'function') {
+                    saveCurrentUser(current);
+                }
+            } catch (error) {
+                current = null;
+            }
+        }
+
         const newId = getId(current);
 
         if (!current || !newId) {
