@@ -1992,6 +1992,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await portalApi('/api/homework/submissions');
             const submissions = data.submissions || [];
 
+            const unassignedCounted = new Set();
             body.innerHTML = plans.slice().reverse().map(plan => {
                 const planTitle = String(plan.title || '')
                     .trim()
@@ -2025,12 +2026,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Some older student accounts/submissions do not include a section.
                     // Count those against the activity so they are not silently lost;
                     // section-specific matching is used whenever the section is available.
+                    const studentKey = String(submission.student?.id ?? submission.id);
+                    const activityKey = String(plan.resultPlanId || plan.id || planTitle) + '|' + planSubject;
+                    const unknownSectionCanCount = !studentClass && !unassignedCounted.has(activityKey);
                     const sameClass =
                         targetClass === 'all classes' ||
-                        !studentClass ||
-                        studentClass === targetClass;
+                        studentClass === targetClass ||
+                        unknownSectionCanCount;
 
                     return sameTitle && sameSubject && sameClass;
+                });
+
+                // If legacy records have no section, count them once for this activity
+                // instead of duplicating the same student across every expanded section.
+                matching.forEach(submission => {
+                    const hasSection = String(submission.student?.class_name || submission.student?.className || submission.student?.section || submission.student?.class || submission.class_name || submission.className || submission.section || '').trim();
+                    if (!hasSection) unassignedCounted.add(String(plan.resultPlanId || plan.id || planTitle) + '|' + planSubject);
                 });
 
                 const uniqueStudents = new Set(
