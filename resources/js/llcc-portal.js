@@ -270,6 +270,15 @@ function updateUserInterface(user) {
     document.getElementById("profilePhone").value = user.phone;
     document.getElementById("profileRoleInput").value = roleName;
 
+    const yearGroup = document.getElementById("studentYearLevelGroup");
+    const classGroup = document.getElementById("studentClassNameGroup");
+    const yearSelect = document.getElementById("profileYearLevel");
+    const classSelect = document.getElementById("profileClassName");
+    if (yearGroup) yearGroup.classList.toggle("hidden", user.role !== "student");
+    if (classGroup) classGroup.classList.toggle("hidden", user.role !== "student");
+    if (yearSelect) yearSelect.value = user.year_level || "";
+    if (classSelect) classSelect.value = user.class_name || user.className || "";
+
     // Render the profile picture URL returned by Laravel after login.
     ["profileAvatar", "topAvatar"].forEach(id => {
         const avatar = document.getElementById(id);
@@ -663,40 +672,50 @@ document.querySelectorAll("[data-open-page]").forEach(link => {
    PROFILE UPDATE
 ========================================================= */
 
-document.getElementById("profileForm").addEventListener("submit", function(event) {
+document.getElementById("profileForm").addEventListener("submit", async function(event) {
     event.preventDefault();
 
     const currentUser = getCurrentUser();
-
-    // The avatar is also stored separately in browser storage. Carry it into
-    // the updated user before saving, so Save Changes cannot reset the avatar.
-    let savedPictureStore = {};
-    try {
-        savedPictureStore = JSON.parse(localStorage.getItem("llcc_profile_picture_by_user") || "{}");
-    } catch (error) {
-        savedPictureStore = {};
-    }
-    const savedPictureKey = String(currentUser.id || (currentUser.email || "").toLowerCase());
-    const savedProfilePicture = currentUser.profilePicture || savedPictureStore[savedPictureKey];
+    if (!currentUser) return;
 
     const updatedUser = {
         ...currentUser,
-        ...(savedProfilePicture ? { profilePicture: savedProfilePicture } : {}),
         name: document.getElementById("profileFullName").value.trim(),
         email: document.getElementById("profileEmail").value.trim().toLowerCase(),
         phone: document.getElementById("profilePhone").value.trim()
     };
 
-    const users = getUsers();
-    const index = users.findIndex(user => user.id === currentUser.id);
+    if (currentUser.role === "student") {
+        const className = document.getElementById("profileClassName")?.value || "";
+        const yearLevel = document.getElementById("profileYearLevel")?.value || "";
+        if (!className || !yearLevel) {
+            showToast("Please select your year level and section.");
+            return;
+        }
 
-    if (index !== -1) {
-        users[index] = updatedUser;
-        saveUsers(users);
-        saveCurrentUser(updatedUser);
-        updateUserInterface(updatedUser);
-        showToast("Profile updated successfully.");
+        try {
+            const result = await portalApi("/api/student/academic-details", {
+                method: "PUT",
+                body: JSON.stringify({ class_name: className, year_level: yearLevel })
+            });
+            updatedUser.class_name = result.user.class_name;
+            updatedUser.year_level = result.user.year_level;
+        } catch (error) {
+            showToast(error.message || "Could not save your year and section.");
+            return;
+        }
     }
+
+    // Keep the current browser session in sync with Laravel's saved academic details.
+    saveCurrentUser(updatedUser);
+    const users = getUsers();
+    const index = users.findIndex(user => String(user.id) === String(currentUser.id));
+    if (index !== -1) {
+        users[index] = { ...users[index], ...updatedUser };
+        saveUsers(users);
+    }
+    updateUserInterface(updatedUser);
+    showToast(currentUser.role === "student" ? "Profile and class details saved successfully." : "Profile updated successfully.");
 });
 
 /* =========================================================
@@ -721,7 +740,7 @@ function refreshHomeworkAssignmentOptions() {
     const relevant = plans.filter(plan => {
         if (user?.role !== "student") return false;
         const target = String(plan.targetClass || "");
-        return target === "All Classes" || !user.className || target === user.className;
+        return target === "All Classes" || !(user.class_name || user.className) || target === (user.class_name || user.className);
     });
     const current = select.value;
     select.replaceChildren(new Option("Choose an activity sent by your teacher", ""));
