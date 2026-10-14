@@ -659,7 +659,6 @@
                                 <th>Assignment</th>
                                 <th>Due Date</th>
                                 <th>Status</th>
-                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody id="homeworkTableBody">
@@ -668,21 +667,21 @@
                                 <td>Algebra Practice</td>
                                 <td>September 18, 2026</td>
                                 <td><span class="badge warning">Pending</span></td>
-                                <td><button class="secondary-btn" onclick="showToast('Homework details opened')">View</button></td>
+                                
                             </tr>
                             <tr>
                                 <td>English</td>
                                 <td>Essay Writing</td>
                                 <td>September 20, 2026</td>
                                 <td><span class="badge success">Submitted</span></td>
-                                <td><button class="secondary-btn" onclick="showToast('Submission viewed')">View</button></td>
+                                
                             </tr>
                             <tr>
                                 <td>Science</td>
                                 <td>Laboratory Report</td>
                                 <td>September 22, 2026</td>
                                 <td><span class="badge warning">Pending</span></td>
-                                <td><button class="secondary-btn" onclick="showToast('Homework details opened')">View</button></td>
+                                
                             </tr>
                         </tbody>
                     </table>
