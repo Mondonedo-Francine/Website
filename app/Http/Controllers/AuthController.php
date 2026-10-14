@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
@@ -123,6 +124,12 @@ public function register(Request $request): JsonResponse
             'phone' => $user->phone,
             'role' => $user->role,
             'class_name' => $user->class_name,
+            'profile_picture_url' => $user->profile_picture
+                ? Storage::disk('public')->url($user->profile_picture)
+                : null,
+            'profile_picture_url' => $user->profile_picture
+                ? Storage::disk('public')->url($user->profile_picture)
+                : null,
         ];
     }
 }
