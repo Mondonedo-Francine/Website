@@ -1923,10 +1923,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!isTeacher) return;
 
+        const sections = ['BSIT 1-A', 'BSIT 1-B', 'BSIT 2-A', 'BSIT 2-B', 'BIT2B', 'BIT AE3', 'BIT3AE'];
         const plans = safeParse(plansKey).filter(plan =>
             String(plan.teacherEmail || '').toLowerCase() ===
             String(user.email || '').toLowerCase()
-        );
+        ).flatMap(plan => String(plan.targetClass || '') === 'All Classes'
+            ? sections.map(section => ({ ...plan, targetClass: section, resultPlanId: plan.id }))
+            : [plan]);
 
         if (!plans.length) {
             body.innerHTML =
