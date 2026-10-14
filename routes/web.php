@@ -24,13 +24,20 @@ Route::get('/auth/user', function (Request $request) {
 });
 Route::post('/auth/logout', [AuthController::class, 'logout']);
 
+
 Route::middleware('auth')->prefix('api')->group(function () {
     Route::get('/attendance/classes', [PortalDataController::class, 'attendanceClasses']);
     Route::get('/attendance', [PortalDataController::class, 'attendance']);
     Route::put('/attendance', [PortalDataController::class, 'saveAttendance']);
     Route::get('/homework/submissions', [PortalDataController::class, 'submissions']);
     Route::post('/homework/submissions', [PortalDataController::class, 'submitHomework']);
+
+    Route::get('/messages/contacts', [\App\Http\Controllers\DirectMessageController::class, 'contacts']);
+    Route::get('/messages/{user}', [\App\Http\Controllers\DirectMessageController::class, 'index']);
+    Route::post('/messages/{user}', [\App\Http\Controllers\DirectMessageController::class, 'store'])
+        ->middleware('throttle:60,1');
 });
+
 
 Route::get('/', function () {
     return view('welcome');

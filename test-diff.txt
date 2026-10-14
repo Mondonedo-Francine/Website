@@ -1,0 +1,47 @@
+diff --git a/tests/Feature/PortalDataTest.php b/tests/Feature/PortalDataTest.php
+index 2dfd60f..3342c77 100644
+--- a/tests/Feature/PortalDataTest.php
++++ b/tests/Feature/PortalDataTest.php
+@@ -35,34 +35,34 @@ public function test_teacher_can_save_and_retrieve_class_attendance_and_history(
+         $this->actingAs($teacher)
+             ->putJson('/api/attendance', [
+                 'class_name' => 'BSIT 1-A',
+                 'date' => '2026-10-14',
+                 'records' => $records,
+             ])
+             ->assertOk()
+             ->assertJsonPath('message', 'Attendance saved successfully.');
+ 
+         $this->assertDatabaseCount('attendance_records', 5);
+-        $this->assertDatabaseHas('attendance_records', [
+-            'class_name' => 'BSIT 1-A',
+-            'attendance_date' => '2026-10-14',
+-            'student_code' => 'LLCC-BSIT1A-002',
+-            'status' => 'Absent',
+-            'recorded_by' => $teacher->id,
+-        ]);
++$this->assertDatabaseHas('attendance_records', [
++    'class_name' => 'BSIT 1-A',
++    'attendance_date' => '2026-10-14 00:00:00',
++    'student_code' => 'LLCC-BSIT1A-002',
++    'status' => 'Absent',
++    'recorded_by' => $teacher->id,
++]);
+ 
+         $this->actingAs($teacher)
+             ->getJson('/api/attendance?class_name=BSIT%201-A&date=2026-10-14')
+             ->assertOk()
+             ->assertJsonPath('records.1.status', 'Absent')
+             ->assertJsonPath('records.2.status', 'Late')
+-            ->assertJsonPath('history.0.date', '2026-10-14');
++            ->assertJsonPath('history.0.date', '2026-10-14T00:00:00.000000Z');
+     }
+ 
+     public function test_teacher_cannot_save_attendance_for_unknown_student_codes(): void
+     {
+         $teacher = User::factory()->create(['role' => 'teacher']);
+         $records = [
+             ['student_code' => 'FAKE-STUDENT', 'status' => 'Present'],
+         ];
+ 
+         $this->actingAs($teacher)

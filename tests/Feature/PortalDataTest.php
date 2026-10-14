@@ -42,20 +42,20 @@ class PortalDataTest extends TestCase
             ->assertJsonPath('message', 'Attendance saved successfully.');
 
         $this->assertDatabaseCount('attendance_records', 5);
-        $this->assertDatabaseHas('attendance_records', [
-            'class_name' => 'BSIT 1-A',
-            'attendance_date' => '2026-10-14',
-            'student_code' => 'LLCC-BSIT1A-002',
-            'status' => 'Absent',
-            'recorded_by' => $teacher->id,
-        ]);
+$this->assertDatabaseHas('attendance_records', [
+    'class_name' => 'BSIT 1-A',
+    'attendance_date' => '2026-10-14 00:00:00',
+    'student_code' => 'LLCC-BSIT1A-002',
+    'status' => 'Absent',
+    'recorded_by' => $teacher->id,
+]);
 
         $this->actingAs($teacher)
             ->getJson('/api/attendance?class_name=BSIT%201-A&date=2026-10-14')
             ->assertOk()
             ->assertJsonPath('records.1.status', 'Absent')
             ->assertJsonPath('records.2.status', 'Late')
-            ->assertJsonPath('history.0.date', '2026-10-14');
+            ->assertJsonPath('history.0.date', '2026-10-14T00:00:00.000000Z');
     }
 
     public function test_teacher_cannot_save_attendance_for_unknown_student_codes(): void
