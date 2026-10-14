@@ -1811,7 +1811,11 @@ function initTeacherMessages() {
             input.value = '';
             input.disabled = true;
             send.disabled = true;
-            list.innerHTML = '';
+            list.innerHTML =
+                '<div class="empty-state" style="padding:22px">' +
+                    '<h3>Sign in to load contacts</h3>' +
+                    '<p>Your Laravel session could not be verified. Please sign in again, then reopen Messages.</p>' +
+                '</div>';
 
             renderHeader(null);
             renderMessages([]);
