@@ -378,7 +378,12 @@ function renderTeacherCalendar() {
 
 let selectedAttendanceClass = "";
 let attendanceDirty = false;
+let attendanceLoadedDate = "";
 let attendanceRosterByClass = {};
+function localDateInputValue() {
+    const now = new Date();
+    return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join("-");
+}
 
 async function setupTeacherAttendance(user) {
     const teacherView = document.getElementById("teacherAttendanceView");
@@ -404,7 +409,7 @@ async function setupTeacherAttendance(user) {
         list.innerHTML = '<p role="alert">Could not load classes. Please refresh and sign in again.</p>';
     }
 
-    document.getElementById("teacherAttendanceDate").value = new Date().toLocaleDateString("en-CA");
+    document.getElementById("teacherAttendanceDate").value = localDateInputValue();
     document.getElementById("attendanceRosterPanel").classList.add("hidden");
     list.closest(".card").classList.remove("hidden");
 }
@@ -441,7 +446,7 @@ function renderAttendanceHistory(history) {
 async function renderAttendanceRoster() {
     if (!selectedAttendanceClass) return;
     const dateInput = document.getElementById("teacherAttendanceDate");
-    const date = dateInput.value || new Date().toLocaleDateString("en-CA");
+    const date = dateInput.value || localDateInputValue();
     dateInput.value = date;
     const message = document.getElementById("attendanceSaveMessage");
     message.textContent = "Loading saved attendance...";
@@ -470,6 +475,7 @@ async function renderAttendanceRoster() {
         }
         message.style.display = "block";
         attendanceDirty = false;
+        attendanceLoadedDate = date;
         updateAttendanceSummary();
         renderAttendanceHistory(data.history || []);
     } catch (error) {
@@ -480,8 +486,9 @@ async function renderAttendanceRoster() {
 }
 
 document.getElementById("teacherAttendanceDate").addEventListener("change", async () => {
+    const dateInput = document.getElementById("teacherAttendanceDate");
     if (attendanceDirty && !confirm("You have unsaved attendance changes. Discard them and switch dates?")) {
-        await renderAttendanceRoster();
+        dateInput.value = attendanceLoadedDate;
         return;
     }
     attendanceDirty = false;
