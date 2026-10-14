@@ -11,6 +11,23 @@ use Illuminate\Validation\Rules\Password;
 
 class AdminController extends Controller
 {
+    private const STUDENT_CLASSES = [
+        'BSIT 1-A',
+        'BSIT 1-B',
+        'BSIT 2-A',
+        'BSIT 2-B',
+        'BIT2B',
+        'BIT AE3',
+        'BIT3AE',
+    ];
+
+    private const YEAR_LEVELS = [
+        '1st Year',
+        '2nd Year',
+        '3rd Year',
+        '4th Year',
+    ];
+
     private function requireAdmin(): void
     {
         abort_unless(Auth::check() && Auth::user()->role === 'admin', 403, 'Administrator access required.');
@@ -29,7 +46,15 @@ class AdminController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'email', 'phone', 'created_at']);
 
-        return view('admin.dashboard', compact('teachers'));
+        $students = User::query()
+            ->where('role', 'student')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'phone', 'class_name', 'year_level']);
+
+        $studentClasses = self::STUDENT_CLASSES;
+        $yearLevels = self::YEAR_LEVELS;
+
+        return view('admin.dashboard', compact('teachers', 'students', 'studentClasses', 'yearLevels'));
     }
 
     public function storeTeacher(Request $request): RedirectResponse
@@ -56,6 +81,25 @@ class AdminController extends Controller
         ]);
 
         return redirect('/admin')->with('success', 'Teacher account created successfully.');
+    }
+
+    public function updateStudentClass(Request $request, User $student): RedirectResponse
+    {
+        if (! Auth::check()) {
+            return redirect('/portal')->with('admin_login_required', 'Please sign in with an administrator account.');
+        }
+
+        $this->requireAdmin();
+        abort_unless($student->role === 'student', 404, 'Student account not found.');
+
+        $data = $request->validate([
+            'class_name' => ['required', 'string', 'in:' . implode(',', self::STUDENT_CLASSES)],
+            'year_level' => ['required', 'string', 'in:' . implode(',', self::YEAR_LEVELS)],
+        ]);
+
+        $student->update($data);
+
+        return redirect('/admin')->with('success', 'Class assignment updated for ' . $student->name . '.');
     }
 
     public function logout(Request $request): RedirectResponse
