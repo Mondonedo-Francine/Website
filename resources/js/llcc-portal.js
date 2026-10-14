@@ -232,6 +232,7 @@ function showApplication(user) {
     setupTeacherAttendance(user);
     renderTeacherDashboard(user);
     renderNotices();
+    refreshStudentRecentActivity();
     renderCustomHomework();
 
     document.getElementById("currentDate").textContent =
@@ -246,6 +247,11 @@ function showApplication(user) {
 function updateUserInterface(user) {
     const addHomeworkButton = document.getElementById("addHomeworkBtn");
     if (addHomeworkButton) addHomeworkButton.classList.toggle("hidden", !user || user.role !== "student");
+    const addNoticeButton = document.getElementById("addNoticeBtn");
+    const noticeFormCard = document.getElementById("noticeFormCard");
+    const isTeacher = !!user && user.role === "teacher";
+    if (addNoticeButton) addNoticeButton.classList.toggle("hidden", !isTeacher);
+    if (noticeFormCard && !isTeacher) noticeFormCard.classList.add("hidden");
     const homeworkNav = document.querySelector('.nav-item[data-page="homework"], .nav-item[data-page="schedule"]');
     if (homeworkNav) {
         homeworkNav.dataset.page = user && user.role === "teacher" ? "schedule" : "homework";
@@ -922,14 +928,16 @@ function renderStudentHomeworkResults(submissions = window.portalHomeworkSubmiss
             cell.textContent = value;
             row.appendChild(cell);
         });
-        const action = document.createElement("td");
-        const view = document.createElement("button");
-        view.type = "button";
-        view.className = "secondary-btn";
-        view.textContent = "View";
-        view.addEventListener("click", () => window.viewHomework?.(homework.id, row));
-        action.appendChild(view);
-        row.appendChild(action);
+
+        const actionCell = document.createElement("td");
+        actionCell.className = "homework-action-cell";
+        const viewButton = document.createElement("button");
+        viewButton.type = "button";
+        viewButton.className = "secondary-btn homework-view-btn";
+        viewButton.textContent = "View";
+        viewButton.addEventListener("click", () => window.viewHomework?.(homework.id, row));
+        actionCell.appendChild(viewButton);
+        row.appendChild(actionCell);
         body.appendChild(row);
     });
 }
@@ -1020,7 +1028,7 @@ async function renderCustomHomework() {
         renderStudentHomeworkResults(window.portalHomeworkSubmissions);
         tableBody.innerHTML = "";
         if (!window.portalHomeworkSubmissions.length) {
-            tableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><h3>No submissions yet</h3><p>Your database-backed homework submissions will appear here.</p></div></td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="4"><div class="empty-state"><h3>No submissions yet</h3><p>Your database-backed homework submissions will appear here.</p></div></td></tr>';
             return;
         }
         const isTeacher = getCurrentUser()?.role === "teacher";
@@ -1039,18 +1047,11 @@ async function renderCustomHomework() {
             badge.className = "badge success";
             badge.textContent = homework.status || "Submitted";
             statusCell.appendChild(badge);
-            const actionCell = document.createElement("td");
-            const viewButton = document.createElement("button");
-            viewButton.type = "button";
-            viewButton.className = "secondary-btn homework-view-btn";
-            viewButton.dataset.homeworkId = String(homework.id);
-            viewButton.textContent = "View";
-            actionCell.appendChild(viewButton);
-            row.append(subjectCell, titleCell, dateCell, statusCell, actionCell);
+            row.append(subjectCell, titleCell, dateCell, statusCell);
             tableBody.appendChild(row);
         });
     } catch (error) {
-        tableBody.innerHTML = '<tr><td colspan="5">Could not load submissions. Please refresh and sign in again.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="4">Could not load submissions. Please refresh and sign in again.</td></tr>';
     }
 }
 
@@ -1076,16 +1077,21 @@ const defaultNotices = [
     }
 ];
 
-document.getElementById("addNoticeBtn").addEventListener("click", function() {
-    document.getElementById("noticeFormCard").classList.remove("hidden");
+document.getElementById("addNoticeBtn")?.addEventListener("click", function() {
+    if (getCurrentUser()?.role !== "teacher") return;
+    document.getElementById("noticeFormCard")?.classList.remove("hidden");
 });
 
 document.getElementById("cancelNoticeBtn").addEventListener("click", function() {
     document.getElementById("noticeFormCard").classList.add("hidden");
 });
 
-document.getElementById("noticeForm").addEventListener("submit", function(event) {
+document.getElementById("noticeForm")?.addEventListener("submit", function(event) {
     event.preventDefault();
+    if (getCurrentUser()?.role !== "teacher") {
+        document.getElementById("noticeFormCard")?.classList.add("hidden");
+        return;
+    }
 
     const notice = {
         id: Date.now(),
@@ -1110,12 +1116,18 @@ document.getElementById("noticeForm").addEventListener("submit", function(event)
 });
 
 function renderNotices() {
+    const currentUser = getCurrentUser();
+    const addNoticeButton = document.getElementById("addNoticeBtn");
+    if (addNoticeButton) addNoticeButton.classList.toggle("hidden", currentUser?.role !== "teacher");
+    const formCard = document.getElementById("noticeFormCard");
+    if (formCard && currentUser?.role !== "teacher") formCard.classList.add("hidden");
     const customNotices = JSON.parse(
         localStorage.getItem(CUSTOM_NOTICES_KEY) || "[]"
     );
 
     const allNotices = [...customNotices, ...defaultNotices];
     const container = document.getElementById("noticesContainer");
+    if (!container) return;
 
     container.innerHTML = "";
 
@@ -1138,6 +1150,23 @@ function renderNotices() {
     });
 }
 
+/* Refresh dashboard recent activity when notices or notifications change. */
+function refreshStudentRecentActivity() {
+    const user = getCurrentUser();
+    if (user?.role !== "student") return;
+    const heading = Array.from(document.querySelectorAll("h3")).find(node => node.textContent.trim() === "Recent Activity");
+    const card = heading?.closest(".card");
+    if (!card) return;
+    card.querySelectorAll(".activity-item, .student-recent-activity-empty").forEach(node => node.remove());
+    let notices = [];
+    try { notices = JSON.parse(localStorage.getItem(CUSTOM_NOTICES_KEY) || "[]"); } catch (_) {}
+    const notifications = Array.from(document.querySelectorAll(".notification-entry")).map(node => ({ title: node.querySelector("strong")?.textContent || "New notification", date: node.querySelector("small")?.textContent || "Recently", icon: "•" }));
+    const items = notices.map(notice => ({ title: "New notice: " + (notice.title || "Announcement"), date: notice.date || "Recently", icon: "◌" })).concat(notifications).slice(-5).reverse();
+    if (!items.length) { const empty = document.createElement("p"); empty.className = "student-recent-activity-empty"; empty.textContent = "No new activity yet."; card.appendChild(empty); return; }
+    items.forEach(item => { const row = document.createElement("div"); row.className = "activity-item"; const icon = document.createElement("div"); icon.className = "activity-icon"; icon.textContent = item.icon; const content = document.createElement("div"); const title = document.createElement("strong"); title.textContent = item.title; const date = document.createElement("span"); date.textContent = item.date; content.append(title, date); row.append(icon, content); card.appendChild(row); });
+}
+window.addEventListener("storage", event => { if (!event.key || event.key === CUSTOM_NOTICES_KEY || event.key.includes("notification")) { renderNotices(); refreshStudentRecentActivity(); } });
+setInterval(() => { if (!document.hidden) { renderNotices(); refreshStudentRecentActivity(); } }, 5000);
 /* =========================================================
    CONTACT FORM
 ========================================================= */
@@ -1151,6 +1180,28 @@ if (legacyContactForm) {
     });
 }
 
+/* Month/day filtering for the student attendance table. */
+(function initStudentAttendanceFilters() {
+    const month = document.getElementById("attendanceMonth");
+    const day = document.getElementById("attendanceDay");
+    const body = month?.closest(".table-card")?.querySelector("tbody");
+    if (!month || !day || !body) return;
+    const rows = () => Array.from(body.querySelectorAll("tr")).filter(row => row.cells.length >= 4);
+    const dateOf = row => { const d = new Date(row.cells[0]?.textContent.trim() || ""); return Number.isNaN(d.getTime()) ? null : d; };
+    const monthOf = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+    function updateDays() {
+        const dates = rows().map(dateOf).filter(Boolean).filter(d => month.value === "all" || monthOf(d) === month.value);
+        const selected = day.value;
+        day.replaceChildren(new Option("All days", "all"));
+        [...new Set(dates.map(d => d.getDate()))].sort((a,b) => a-b).forEach(d => day.add(new Option(String(d), String(d))));
+        day.disabled = month.value === "all" || dates.length === 0;
+        if (![...day.options].some(o => o.value === selected)) day.value = "all";
+    }
+    function apply() { rows().forEach(row => { const d = dateOf(row); row.hidden = !(d && (month.value === "all" || monthOf(d) === month.value) && (day.value === "all" || d.getDate() === Number(day.value))); }); }
+    month.addEventListener("change", () => { updateDays(); apply(); });
+    day.addEventListener("change", apply);
+    updateDays(); apply();
+})();
 /* =========================================================
    LOGOUT
 ========================================================= */
@@ -1904,6 +1955,19 @@ function studentDetails(person) {
             }
         } catch (error) {
             current = null;
+        }
+
+        // Restore the authenticated Laravel session if browser storage is empty or stale.
+        if (!current || !getId(current)) {
+            try {
+                const session = await api('/auth/user');
+                current = session.user || null;
+                if (current && typeof saveCurrentUser === 'function') {
+                    saveCurrentUser(current);
+                }
+            } catch (error) {
+                current = null;
+            }
         }
 
         const newId = getId(current);
