@@ -419,6 +419,70 @@ function localDateInputValue() {
     return [now.getFullYear(), String(now.getMonth() + 1).padStart(2, "0"), String(now.getDate()).padStart(2, "0")].join("-");
 }
 
+async function renderStudentAttendance(user) {
+    const body = document.getElementById("studentAttendanceRecords");
+    const message = document.getElementById("studentAttendanceMessage");
+    const monthFilter = document.getElementById("attendanceMonth");
+    if (!body || !message || !monthFilter) return;
+
+    const renderRows = records => {
+        const month = monthFilter.value;
+        const filtered = records.filter(record => month === "all" || record.date.slice(0, 7) === month);
+        body.replaceChildren();
+        if (!filtered.length) {
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+            cell.colSpan = 3;
+            cell.textContent = records.length ? "No attendance records for this month." : "No attendance records have been saved for your account yet.";
+            row.appendChild(cell);
+            body.appendChild(row);
+            return;
+        }
+        filtered.forEach(record => {
+            const row = document.createElement("tr");
+            const dateCell = document.createElement("td");
+            dateCell.textContent = new Date(record.date + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+            const classCell = document.createElement("td");
+            classCell.textContent = record.class_name || user.class_name || "—";
+            const statusCell = document.createElement("td");
+            const badge = document.createElement("span");
+            badge.className = "badge " + (record.status === "Present" ? "success" : record.status === "Absent" ? "danger" : "info");
+            badge.textContent = record.status;
+            statusCell.appendChild(badge);
+            row.append(dateCell, classCell, statusCell);
+            body.appendChild(row);
+        });
+    };
+
+    body.innerHTML = '<tr><td colspan="3">Loading attendance records...</td></tr>';
+    message.textContent = "Loading your saved attendance...";
+    try {
+        const data = await portalApi("/api/attendance/student");
+        const summary = data.summary || {};
+        document.getElementById("studentPresentDays").textContent = summary.present_days ?? 0;
+        document.getElementById("studentAbsentDays").textContent = summary.absent_days ?? 0;
+        document.getElementById("studentAttendancePercentage").textContent = (summary.percentage ?? 0) + "%";
+        document.getElementById("studentTotalClasses").textContent = summary.total_classes ?? 0;
+
+        const records = data.records || [];
+        const months = [...new Set(records.map(record => record.date.slice(0, 7)))].sort().reverse();
+        const previous = monthFilter.value;
+        monthFilter.replaceChildren(new Option("All months", "all"));
+        months.forEach(month => {
+            const [year, monthNumber] = month.split("-");
+            const date = new Date(Number(year), Number(monthNumber) - 1, 1);
+            monthFilter.add(new Option(date.toLocaleDateString("en-US", { month: "long", year: "numeric" }), month));
+        });
+        monthFilter.value = months.includes(previous) ? previous : "all";
+        renderRows(records);
+        message.textContent = records.length ? "Showing attendance records saved by your teacher." : "No attendance records are available yet. Your teacher must save attendance for your class first.";
+        monthFilter.onchange = () => renderRows(records);
+    } catch (error) {
+        body.innerHTML = '<tr><td colspan="3">Could not load attendance records.</td></tr>';
+        message.textContent = error.message || "Could not load your attendance. Please refresh and sign in again.";
+    }
+}
+
 async function setupTeacherAttendance(user) {
     const teacherView = document.getElementById("teacherAttendanceView");
     const studentView = document.getElementById("studentAttendanceView");
@@ -426,7 +490,10 @@ async function setupTeacherAttendance(user) {
     const isTeacher = user && user.role === "teacher";
     teacherView.classList.toggle("hidden", !isTeacher);
     studentView.classList.toggle("hidden", isTeacher);
-    if (!isTeacher) return;
+    if (!isTeacher) {
+        await renderStudentAttendance(user);
+        return;
+    }
 
     const list = document.getElementById("attendanceClassList");
     list.innerHTML = '<p>Loading your classes...</p>';
