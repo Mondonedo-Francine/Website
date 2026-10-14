@@ -703,6 +703,36 @@ async function renderCustomHomework() {
     try {
         const data = await portalApi("/api/homework/submissions");
         window.portalHomeworkSubmissions = data.submissions || [];
+        const teacherTable = document.getElementById("teacherHomeworkSubmissionsTableBody");
+        if (teacherTable) {
+            teacherTable.innerHTML = "";
+            if (!window.portalHomeworkSubmissions.length) {
+                teacherTable.innerHTML = '<tr><td colspan="6">No student submissions yet.</td></tr>';
+            } else {
+                window.portalHomeworkSubmissions.forEach(homework => {
+                    const row = document.createElement("tr");
+                    const student = document.createElement("td");
+                    student.textContent = homework.student?.name || "Student";
+                    const subject = document.createElement("td");
+                    subject.textContent = homework.subject;
+                    const title = document.createElement("td");
+                    title.textContent = homework.title;
+                    const submitted = document.createElement("td");
+                    submitted.textContent = homework.submitted_at ? new Date(homework.submitted_at).toLocaleString() : "—";
+                    const status = document.createElement("td");
+                    status.textContent = homework.status || "Submitted";
+                    const action = document.createElement("td");
+                    const view = document.createElement("button");
+                    view.type = "button";
+                    view.className = "secondary-btn";
+                    view.textContent = "View";
+                    view.addEventListener("click", () => window.viewHomework?.(homework.id, row));
+                    action.appendChild(view);
+                    row.append(student, subject, title, submitted, status, action);
+                    teacherTable.appendChild(row);
+                });
+            }
+        }
         tableBody.innerHTML = "";
         if (!window.portalHomeworkSubmissions.length) {
             tableBody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><h3>No submissions yet</h3><p>Your database-backed homework submissions will appear here.</p></div></td></tr>';
@@ -912,7 +942,7 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
   const oldUpdate=window.updateUserInterface;
   window.updateUserInterface=function(u){if(oldUpdate)oldUpdate(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);addProfileControls()};
   function addHomeworkDetails(){
-    const page=document.getElementById('homeworkPage');
+    const page=document.body;
     if(!page||document.getElementById('homeworkDetailsBox'))return;
     const box=document.createElement('div');
     box.id='homeworkDetailsBox';
