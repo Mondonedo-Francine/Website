@@ -175,6 +175,7 @@ class PortalDataController extends Controller
                 'description' => $submission->description,
                 'status' => $submission->status,
                 'submitted_at' => $submission->submitted_at?->toISOString(),
+                'section' => $submission->student?->class_name,
                 'student' => $user->role === 'teacher' ? [
                     'id' => $submission->student->id,
                     'name' => $submission->student->name,
