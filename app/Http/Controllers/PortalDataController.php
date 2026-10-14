@@ -40,6 +40,19 @@ class PortalDataController extends Controller
             ->all();
     }
 
+    public function teacherDashboardStats(Request $request): JsonResponse
+    {
+        $this->requireRole($request, 'teacher');
+
+        return response()->json([
+            'students_across_classes' => User::query()
+                ->where('role', 'student')
+                ->whereNotNull('class_name')
+                ->where('class_name', '<>', '')
+                ->count(),
+        ]);
+    }
+
     public function attendanceClasses(Request $request): JsonResponse
     {
         $this->requireRole($request, 'teacher');
