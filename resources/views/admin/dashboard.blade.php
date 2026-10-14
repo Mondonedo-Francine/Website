@@ -80,6 +80,51 @@
             @endif
         </section>
     </div>
+
+    <section class="card" style="margin-top:20px;">
+        <h3>Student class assignments <span class="count">{{ $students->count() }}</span></h3>
+        <p class="sub">Assign each registered student to the correct year level and section. These changes are saved to the student's account and used by attendance.</p>
+        @if ($students->isEmpty())
+            <div class="empty">No student accounts yet. Register a student or seed demo students in your local development environment.</div>
+        @else
+            <div class="table-wrap"><table style="min-width:760px;">
+                <thead><tr><th>Student</th><th>Email</th><th>Year level</th><th>Section</th><th>Action</th></tr></thead>
+                <tbody>
+                    @foreach ($students as $student)
+                        <tr>
+                            <td>{{ $student->name }}</td>
+                            <td>{{ $student->email }}</td>
+                            <td colspan="3">
+                                <form method="POST" action="/admin/students/{{ $student->id }}/class" style="display:grid;grid-template-columns:minmax(130px,1fr) minmax(130px,1fr) auto;gap:8px;align-items:center;min-width:500px;">
+                                    @csrf
+                                    @method('PUT')
+                                    <label style="margin:0;">
+                                        <span style="display:block;margin-bottom:5px;">Year level</span>
+                                        <select name="year_level" required style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px;background:white;">
+                                            <option value="">Choose year</option>
+                                            @foreach ($yearLevels as $yearLevel)
+                                                <option value="{{ $yearLevel }}" @selected(old('year_level', $student->year_level) === $yearLevel)>{{ $yearLevel }}</option>
+                                            @endforeach
+                                        </select>
+                                    </label>
+                                    <label style="margin:0;">
+                                        <span style="display:block;margin-bottom:5px;">Section</span>
+                                        <select name="class_name" required style="width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:8px;background:white;">
+                                            <option value="">Choose section</option>
+                                            @foreach ($studentClasses as $studentClass)
+                                                <option value="{{ $studentClass }}" @selected(old('class_name', $student->class_name) === $studentClass)>{{ $studentClass }}</option>
+                                            @endforeach
+                                        </select>
+                                    </label>
+                                    <button type="submit" style="border:0;border-radius:8px;background:var(--blue);color:white;font-weight:650;padding:10px 12px;cursor:pointer;">Save</button>
+                                </form>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table></div>
+        @endif
+    </section>
 </main>
 </body>
 </html>
