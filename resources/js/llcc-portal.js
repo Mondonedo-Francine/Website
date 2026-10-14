@@ -196,6 +196,11 @@ document.getElementById("forgotPassword").addEventListener("click", function(eve
 ========================================================= */
 
 function showApplication(user) {
+    if (user && user.role === "admin") {
+        window.location.href = "/admin";
+        return;
+    }
+
     authPage.classList.add("hidden");
     appPage.classList.remove("hidden");
 
