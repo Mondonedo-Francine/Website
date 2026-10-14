@@ -473,7 +473,7 @@
                         <div id="attendanceSaveMessage" class="contact-success" role="status" aria-live="polite"></div>
                         <div style="overflow-x:auto;"><table class="attendance-table" style="min-width:580px;"><thead><tr><th>#</th><th>Student Name</th><th>Student ID</th><th>Attendance Status</th></tr></thead><tbody id="teacherAttendanceRoster"></tbody></table></div>
                         <div class="attendance-history"><h3>Recent save history</h3><ul id="attendanceHistoryList"><li class="attendance-history-empty">No saved attendance history yet.</li></ul></div>
-                        <p style="font-size:12px;color:var(--muted);margin-top:14px;">Records and recent save history are stored in this browser for this demo.</p>
+                        <p style="font-size:12px;color:var(--muted);margin-top:14px;">Attendance records and save history are stored in the portal database.</p>
                     </div>
                 </div>
                 <div id="studentAttendanceView">
@@ -682,6 +682,16 @@
                                     <td><div class="schedule-meetings"><div class="schedule-meeting"><span>◷&nbsp; 05:30 PM - 08:30 PM</span><span class="schedule-day">▢ T</span></div></div></td><td class="schedule-room">CAS-RM12</td>
                                 </tr>
                             </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="table-card" style="margin-top:22px;">
+                    <div class="card-header"><h3>Student Homework Submissions</h3><span class="badge info">Teacher</span></div>
+                    <p style="color:var(--muted);font-size:13px;margin:-6px 0 16px;">Submissions saved by students appear here.</p>
+                    <div style="overflow-x:auto;">
+                        <table aria-label="Student homework submissions">
+                            <thead><tr><th>Student</th><th>Subject</th><th>Assignment</th><th>Submitted</th><th>Status</th><th>Action</th></tr></thead>
+                            <tbody id="teacherHomeworkSubmissionsTableBody"><tr><td colspan="6">Loading submissions...</td></tr></tbody>
                         </table>
                     </div>
                 </div>
