@@ -2010,11 +2010,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         .trim()
                         .toLowerCase() === planSubject;
 
-                    const studentClass = submission.student?.class_name;
-                    const targetClass = plan.targetClass || '';
+                    const studentClass = String(
+                        submission.student?.class_name ||
+                        submission.student?.className ||
+                        submission.student?.section ||
+                        submission.student?.class ||
+                        submission.class_name ||
+                        submission.className ||
+                        submission.section ||
+                        ''
+                    ).trim().toLowerCase();
+                    const targetClass = String(plan.targetClass || '').trim().toLowerCase();
 
+                    // Some older student accounts/submissions do not include a section.
+                    // Count those against the activity so they are not silently lost;
+                    // section-specific matching is used whenever the section is available.
                     const sameClass =
-                        targetClass === 'All Classes' ||
+                        targetClass === 'all classes' ||
+                        !studentClass ||
                         studentClass === targetClass;
 
                     return sameTitle && sameSubject && sameClass;
@@ -2080,6 +2093,21 @@ document.addEventListener('DOMContentLoaded', () => {
     body.addEventListener('click', event => {
         const button = event.target.closest('[data-view-results]');
         if (!button) return;
+
+        // Take the teacher directly to the detailed submissions table.
+        const submissionsCard = document.getElementById('teacherHomeworkSubmissionsCard');
+        if (submissionsCard) {
+            submissionsCard.classList.remove('hidden');
+            submissionsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            submissionsCard.style.transition = 'outline-color .25s ease, box-shadow .25s ease';
+            submissionsCard.style.outline = '3px solid #c4b5fd';
+            submissionsCard.style.outlineOffset = '3px';
+            window.setTimeout(() => {
+                submissionsCard.style.outline = '';
+                submissionsCard.style.outlineOffset = '';
+            }, 1800);
+        }
+
         const items = window.__llccResultRows?.[button.dataset.viewResults] || [];
         const oldDialog = document.getElementById('turnInStudentsDialog');
         if (oldDialog) oldDialog.remove();
