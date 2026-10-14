@@ -509,79 +509,27 @@
                     </div>
                 </div>
                 <div id="studentAttendanceView">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">✓</div>
-                        <h3>46</h3>
-                        <p>Present Days</p>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-icon">✓</div><h3 id="studentPresentDays">0</h3><p>Present Days</p></div>
+                        <div class="stat-card"><div class="stat-icon">×</div><h3 id="studentAbsentDays">0</h3><p>Absent Days</p></div>
+                        <div class="stat-card"><div class="stat-icon">%</div><h3 id="studentAttendancePercentage">0%</h3><p>Attendance Percentage</p></div>
+                        <div class="stat-card"><div class="stat-icon">▣</div><h3 id="studentTotalClasses">0</h3><p>Total Classes</p></div>
                     </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">×</div>
-                        <h3>4</h3>
-                        <p>Absent Days</p>
+                    <div class="table-card">
+                        <div class="card-header">
+                            <h3>Attendance Details</h3>
+                            <select id="attendanceMonth" aria-label="Filter attendance by month" style="padding:9px;border:1px solid #ddd;border-radius:6px;">
+                                <option value="all">All months</option>
+                            </select>
+                        </div>
+                        <div id="studentAttendanceMessage" role="status" style="padding:12px 0;color:var(--muted);">Loading attendance records...</div>
+                        <div style="overflow-x:auto;">
+                            <table>
+                                <thead><tr><th>Date</th><th>Class / Section</th><th>Status</th></tr></thead>
+                                <tbody id="studentAttendanceRecords"><tr><td colspan="3">Loading attendance records...</td></tr></tbody>
+                            </table>
+                        </div>
                     </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">%</div>
-                        <h3>92%</h3>
-                        <p>Attendance Percentage</p>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-icon">▣</div>
-                        <h3>50</h3>
-                        <p>Total Classes</p>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <div class="card-header">
-                        <h3>Attendance Details</h3>
-                        <select id="attendanceMonth" style="padding:9px;border:1px solid #ddd;border-radius:6px;">
-                            <option>September 2026</option>
-                            <option>August 2026</option>
-                            <option>July 2026</option>
-                        </select>
-                    </div>
-
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Subject</th>
-                                <th>Class Time</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>September 16, 2026</td>
-                                <td>Mathematics</td>
-                                <td>9:00 AM</td>
-                                <td><span class="badge success">Present</span></td>
-                            </tr>
-                            <tr>
-                                <td>September 15, 2026</td>
-                                <td>English</td>
-                                <td>10:00 AM</td>
-                                <td><span class="badge success">Present</span></td>
-                            </tr>
-                            <tr>
-                                <td>September 14, 2026</td>
-                                <td>Science</td>
-                                <td>11:00 AM</td>
-                                <td><span class="badge danger">Absent</span></td>
-                            </tr>
-                            <tr>
-                                <td>September 13, 2026</td>
-                                <td>Computer</td>
-                                <td>12:00 PM</td>
-                                <td><span class="badge success">Present</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
                 </div>
             </section>
 

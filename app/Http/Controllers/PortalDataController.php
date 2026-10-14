@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AttendanceRecord;
 use App\Models\HomeworkSubmission;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,12 +28,16 @@ class PortalDataController extends Controller
     {
         abort_unless(isset(self::CLASSES[$className]), 404, 'Class not found.');
 
-        return collect(self::CLASSES[$className])->values()->map(function (string $name, int $index) use ($className) {
-            return [
-                'student_code' => 'LLCC-' . preg_replace('/[^a-z0-9]/i', '', $className) . '-' . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT),
-                'student_name' => $name,
-            ];
-        })->all();
+        return User::query()
+            ->where('role', 'student')
+            ->where('class_name', $className)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (User $student) => [
+                'student_code' => 'LLCC-STU-' . $student->id,
+                'student_name' => $student->name,
+            ])
+            ->all();
     }
 
     public function attendanceClasses(Request $request): JsonResponse
@@ -91,6 +96,40 @@ class PortalDataController extends Controller
             'records' => $records,
             'history' => $history,
             'saved_at' => $savedAt,
+        ]);
+    }
+
+    public function studentAttendance(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user && $user->role === 'student', 403, 'Only student accounts can view student attendance.');
+
+        $records = collect();
+        if ($user->class_name) {
+            $studentCode = 'LLCC-STU-' . $user->id;
+            $records = AttendanceRecord::query()
+                ->where('class_name', $user->class_name)
+                ->where('student_code', $studentCode)
+                ->orderByDesc('attendance_date')
+                ->get(['attendance_date', 'class_name', 'status']);
+        }
+
+        $present = $records->where('status', 'Present')->count();
+        $absent = $records->where('status', 'Absent')->count();
+        $total = $records->count();
+
+        return response()->json([
+            'summary' => [
+                'present_days' => $present,
+                'absent_days' => $absent,
+                'total_classes' => $total,
+                'percentage' => $total > 0 ? round(($present / $total) * 100) : 0,
+            ],
+            'records' => $records->map(fn ($record) => [
+                'date' => $record->attendance_date->format('Y-m-d'),
+                'class_name' => $record->class_name,
+                'status' => $record->status,
+            ])->values(),
         ]);
     }
 
