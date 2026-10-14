@@ -136,8 +136,9 @@
                         <input
                             type="password"
                             id="signupPassword"
-                            placeholder="Create a password"
-                            minlength="5"
+                            placeholder="Create a password (at least 8 characters)"
+                            minlength="8"
+                            autocomplete="new-password"
                             required
                         >
                     </div>
