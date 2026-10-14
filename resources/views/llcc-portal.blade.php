@@ -381,6 +381,12 @@
 
                     <div class="profile-card">
                         <div class="profile-avatar" id="profileAvatar">CR</div>
+                        <div class="profile-picture-actions" id="profilePictureActions">
+                            <label for="profilePictureInput" class="secondary-btn">📷 Change Picture</label>
+                            <input id="profilePictureInput" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+                            <button type="button" class="danger-btn" id="removeProfilePictureBtn">Remove</button>
+                            <small>JPG, PNG or WEBP · max 5 MB</small>
+                        </div>
                         <h2 id="profileName">Student Name</h2>
                         <p id="profileRole">Student</p>
 

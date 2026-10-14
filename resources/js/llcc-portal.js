@@ -1003,24 +1003,19 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
 (function(){
   const initialsOf = n => (n||'CR').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
   function current(){return typeof getCurrentUser==='function'?getCurrentUser():JSON.parse(localStorage.getItem('currentUser')||'null')}
-  function persistUser(u){
-    if(typeof getUsers==='function'&&typeof saveUsers==='function'){
-      const users=getUsers(); const i=users.findIndex(x=>x.email===u.email||x.id===u.id); if(i>=0) users[i]=u; else users.push(u); saveUsers(users);
-    }
-    if(typeof saveCurrentUser==='function') saveCurrentUser(u); else localStorage.setItem('currentUser',JSON.stringify(u));
-    if(typeof updateUserInterface==='function') updateUserInterface(u);
-  }
-  function setAvatar(el,u){if(!el)return; const pic=u&&u.profilePicture; el.innerHTML=pic?`<img src="${pic}" alt="Profile picture">`:initialsOf(u&&u.name);}
-  function addProfileControls(){
-    const avatar=document.getElementById('profileAvatar'); if(!avatar)return;
-    if(!document.getElementById('profilePictureInput')){
-      const box=document.createElement('div'); box.className='profile-picture-actions'; box.innerHTML=`<label for="profilePictureInput" class="secondary-btn">📷 Change Picture</label><input id="profilePictureInput" type="file" accept="image/*"><button type="button" class="danger-btn" id="removeProfilePictureBtn">Remove</button>`; avatar.parentElement.appendChild(box);
-      document.getElementById('profilePictureInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;if(f.size>5*1024*1024){alert('Please choose an image smaller than 5MB.');return}const r=new FileReader();r.onload=()=>{const u=current()||{};u.profilePicture=r.result;persistUser(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u)};r.readAsDataURL(f)});
-      document.getElementById('removeProfilePictureBtn').addEventListener('click',()=>{const u=current()||{};delete u.profilePicture;persistUser(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u)});
-    }
+  function persistUser(u){if(typeof getUsers==='function'&&typeof saveUsers==='function'){const users=getUsers();const i=users.findIndex(x=>x.email===u.email||x.id===u.id);if(i>=0)users[i]=u;else users.push(u);saveUsers(users)}if(typeof saveCurrentUser==='function')saveCurrentUser(u);else localStorage.setItem('currentUser',JSON.stringify(u));if(typeof updateUserInterface==='function')updateUserInterface(u)}
+  const PROFILE_PICTURE_KEY='llcc_profile_picture_by_user';
+  function pictureStore(){try{return JSON.parse(localStorage.getItem(PROFILE_PICTURE_KEY)||'{}')}catch(e){return {}}}
+  function pictureIdentity(u){return String((u&&u.id)||((u&&u.email)||'').toLowerCase())}
+  function storePicture(u,pic){const store=pictureStore(),key=pictureIdentity(u);if(!key)return;if(pic)store[key]=pic;else delete store[key];localStorage.setItem(PROFILE_PICTURE_KEY,JSON.stringify(store))}
+  function setAvatar(el,u){if(!el)return;const pic=u&&u.profilePicture;el.replaceChildren();if(pic){const img=document.createElement('img');img.src=pic;img.alt='Profile picture';el.appendChild(img)}else{el.textContent=initialsOf(u&&u.name)}}
+  function readCompressedImage(file,maxDimension,quality){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('Could not read this image.'));reader.onload=()=>{const image=new Image();image.onerror=()=>reject(new Error('This image could not be opened.'));image.onload=()=>{const scale=Math.min(1,maxDimension/Math.max(image.width,image.height));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL('image/jpeg',quality))};image.src=reader.result};reader.readAsDataURL(file)})}
+  function addProfileControls(){const avatar=document.getElementById('profileAvatar'),input=document.getElementById('profilePictureInput'),remove=document.getElementById('removeProfilePictureBtn');if(!avatar||!input)return;
+    if(!input.dataset.bound){input.dataset.bound='1';input.addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;if(!['image/jpeg','image/png','image/webp'].includes(f.type)){alert('Choose a JPG, PNG, or WEBP image.');e.target.value='';return}if(f.size>5*1024*1024){alert('Please choose an image smaller than 5 MB.');e.target.value='';return}try{const u=current()||{};u.profilePicture=await readCompressedImage(f,480,.82);storePicture(u,u.profilePicture);persistUser(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);if(typeof showToast==='function')showToast('Profile picture saved on this browser.')}catch(err){alert(err.message||'Could not save this image.')}finally{e.target.value=''}})}
+    if(remove&&!remove.dataset.bound){remove.dataset.bound='1';remove.addEventListener('click',()=>{const u=current()||{};delete u.profilePicture;storePicture(u,null);persistUser(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);if(typeof showToast==='function')showToast('Profile picture removed.')})}
   }
   const oldUpdate=window.updateUserInterface;
-  window.updateUserInterface=function(u){if(oldUpdate)oldUpdate(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);addProfileControls()};
+  window.updateUserInterface=function(u){if(u){const store=pictureStore(),key=pictureIdentity(u);if(!u.profilePicture&&key&&store[key])u={...u,profilePicture:store[key]};if(u.profilePicture&&key&&!store[key])storePicture(u,u.profilePicture)}if(oldUpdate)oldUpdate(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);addProfileControls()};
   
 function addHomeworkDetails() {
     const existingBox = document.getElementById('homeworkDetailsBox');
