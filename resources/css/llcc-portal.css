@@ -1110,8 +1110,14 @@ td {
 @media(max-width: 900px) { .solutions-grid { grid-template-columns: 1fr; } .solution-card { min-height: auto; } .solutions-heading h1 { font-size: 32px; } .solutions-heading p { font-size: 17px; } }
 
 .profile-picture-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.profile-picture-actions input{display:none}.details-box{margin-top:20px;padding:20px;border:1px solid #ddd;border-radius:14px;background:#fff}.hidden{display:none!important}.solution-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px}.solution-modal .modal-card{background:#fff;max-width:650px;width:100%;max-height:80vh;overflow:auto;border-radius:18px;padding:26px}.contact-success{margin-top:12px;padding:12px;border-radius:10px;background:#e8f7ee;color:#176b3a;display:none}
-.profile-avatar img,.top-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
-
+.profile-avatar img,
+.avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
 /* ================= TEACHER MESSAGES ================= */
 .message-search-wrap{padding:12px;border-bottom:1px solid #edf0f5;background:#fff}
 .message-search-wrap input{width:100%;border:1px solid #d9deea;border-radius:9px;padding:11px 12px;font-size:13px;outline:none}

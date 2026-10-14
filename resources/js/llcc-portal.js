@@ -1032,103 +1032,27 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
 })();
 /* ===== Original inline script block 2 ===== */
 
-<<<<<<< Updated upstream
-(function(){
-  const initialsOf = n => (n || 'CR').trim().split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0].toUpperCase()).join('');
-  function current() {
-    return typeof getCurrentUser === 'function'
-      ? getCurrentUser()
-      : JSON.parse(localStorage.getItem('currentUser') || 'null');
-  }
-  function persistUser(user) {
-    if (typeof saveCurrentUser === 'function') saveCurrentUser(user);
-    else localStorage.setItem('currentUser', JSON.stringify(user));
-    if (typeof getUsers === 'function' && typeof saveUsers === 'function') {
-      const users = getUsers();
-      const index = users.findIndex(item => item.id === user.id || item.email === user.email);
-      if (index >= 0) { users[index] = user; saveUsers(users); }
-    }
-  }
-  function setAvatar(element, user) {
-    if (!element) return;
-    const url = user && user.profile_picture_url;
-    element.replaceChildren();
-    if (url) {
-      const img = document.createElement('img');
-      img.src = url;
-      img.alt = 'Profile picture';
-      img.onerror = () => { element.replaceChildren(); element.textContent = initialsOf(user && user.name); };
-      element.appendChild(img);
-    } else {
-      element.textContent = initialsOf(user && user.name);
-    }
-  }
-  function updateAvatars(user) {
-    setAvatar(document.getElementById('profileAvatar'), user);
-    setAvatar(document.getElementById('topAvatar'), user);
-  }
-  async function pictureRequest(method, file) {
-    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
-    const headers = { Accept: 'application/json', 'X-CSRF-TOKEN': csrf };
-    const options = { method, credentials: 'same-origin', headers };
-    if (file) {
-      const body = new FormData();
-      body.append('picture', file);
-      options.body = body;
-    }
-    const response = await fetch('/api/profile/picture', options);
-    let data = {};
-    try { data = await response.json(); } catch (error) {}
-    if (!response.ok) {
-      const firstValidationError = data.errors ? Object.values(data.errors).flat()[0] : null;
-      throw new Error(firstValidationError || data.message || 'The profile picture request failed.');
-    }
-    return data;
-  }
-  async function addProfileControls() {
-    const input = document.getElementById('profilePictureInput');
-    const remove = document.getElementById('removeProfilePictureBtn');
-    if (input && !input.dataset.bound) {
-      input.dataset.bound = 'true';
-      input.addEventListener('change', async event => {
-        const file = event.target.files && event.target.files[0];
-        if (!file) return;
-        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-          alert('Choose a JPG, PNG, or WEBP image.');
-          event.target.value = '';
-          return;
-        }
-        if (file.size > 5 * 1024 * 1024) {
-          alert('Please choose an image smaller than 5 MB.');
-          event.target.value = '';
-          return;
-        }
-        try {
-          const data = await pictureRequest('POST', file);
-          const user = current();
-          if (user) {
-            user.profile_picture_url = data.profile_picture_url;
-            persistUser(user);
-            updateAvatars(user);
-          }
-          if (typeof showToast === 'function') showToast('Profile picture saved successfully.');
-        } catch (error) {
-          alert(error.message || 'Could not save the profile picture.');
-        } finally {
-          event.target.value = '';
-        }
-      });
-    }
-    if (remove && !remove.dataset.bound) {
-      remove.dataset.bound = 'true';
-      remove.addEventListener('click', async () => {
-        try {
-          await pictureRequest('DELETE');
-          const user = current();
-          if (user) {
-=======
+/* ===== Profile picture controls ===== */
 (function () {
-    const PROFILE_PICTURE_URL_KEY = "profile_picture_url";
+    function current() {
+        if (typeof getCurrentUser === "function") {
+            return getCurrentUser();
+        }
+
+        try {
+            return JSON.parse(localStorage.getItem("currentUser") || "null");
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function persistUser(user) {
+        if (typeof saveCurrentUser === "function") {
+            saveCurrentUser(user);
+        } else {
+            localStorage.setItem("currentUser", JSON.stringify(user));
+        }
+    }
 
     function initialsOf(name) {
         return (name || "CR")
@@ -1140,50 +1064,20 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
             .join("");
     }
 
-    function current() {
-        return typeof getCurrentUser === "function"
-            ? getCurrentUser()
-            : JSON.parse(localStorage.getItem("currentUser") || "null");
-    }
-
-    function persistUser(user) {
-        if (typeof saveCurrentUser === "function") {
-            saveCurrentUser(user);
-        } else {
-            localStorage.setItem("currentUser", JSON.stringify(user));
-        }
-
-        if (typeof getUsers === "function" &&
-            typeof saveUsers === "function") {
-            const users = getUsers();
-            const index = users.findIndex(
-                item => item.id === user.id || item.email === user.email
-            );
-
-            if (index >= 0) {
-                users[index] = user;
-                saveUsers(users);
-            }
-        }
-    }
-
     function setAvatar(element, user) {
         if (!element) return;
 
-        const pictureUrl = user &&
-            (user.profile_picture_url || user[PROFILE_PICTURE_URL_KEY]);
-
         element.replaceChildren();
 
-        if (pictureUrl) {
-            const image = document.createElement("img");
-            image.src = pictureUrl;
-            image.alt = "Profile picture";
-            image.onerror = () => {
+        if (user && user.profile_picture_url) {
+            const img = document.createElement("img");
+            img.src = user.profile_picture_url;
+            img.alt = "Profile picture";
+            img.onerror = () => {
                 element.replaceChildren();
-                element.textContent = initialsOf(user && user.name);
+                element.textContent = initialsOf(user.name);
             };
-            element.appendChild(image);
+            element.appendChild(img);
         } else {
             element.textContent = initialsOf(user && user.name);
         }
@@ -1194,132 +1088,56 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
         setAvatar(document.getElementById("topAvatar"), user);
     }
 
-    async function uploadProfilePicture(file) {
-        const formData = new FormData();
-        formData.append("picture", file);
+    async function pictureRequest(method, file) {
+        const csrf =
+            document.querySelector('meta[name="csrf-token"]')?.content || "";
 
-        const csrf = document.querySelector(
-            'meta[name="csrf-token"]'
-        )?.content || "";
-
-        const response = await fetch("/api/profile/picture", {
-            method: "POST",
-            credentials: "same-origin",
-            headers: {
-                Accept: "application/json",
-                "X-CSRF-TOKEN": csrf
-            },
-            body: formData
-        });
-
-        let data = {};
-        try {
-            data = await response.json();
-        } catch (error) {
-            // The server may return a non-JSON error page.
-        }
-
-        if (!response.ok) {
-            throw new Error(
-                data.message || "Could not upload the profile picture."
-            );
-        }
-
-        const user = current();
-
-        if (user) {
-            user.profile_picture_url = data.profile_picture_url;
-            persistUser(user);
-            updateAvatars(user);
-
-            if (typeof updateUserInterface === "function") {
-                updateUserInterface(user);
-            }
-        }
-
-        if (typeof showToast === "function") {
-            showToast("Profile picture saved successfully.");
-        }
-    }
-
-    async function removeProfilePicture() {
-        const csrf = document.querySelector(
-            'meta[name="csrf-token"]'
-        )?.content || "";
-
-        const response = await fetch("/api/profile/picture", {
-            method: "DELETE",
+        const options = {
+            method,
             credentials: "same-origin",
             headers: {
                 Accept: "application/json",
                 "X-CSRF-TOKEN": csrf
             }
-        });
+        };
 
-        let data = {};
-        try {
-            data = await response.json();
-        } catch (error) {
-            // Handle non-JSON server responses below.
+        if (file) {
+            const body = new FormData();
+            body.append("picture", file);
+            options.body = body;
         }
 
+        const response = await fetch("/api/profile/picture", options);
+        let data = {};
+
+        try {
+            data = await response.json();
+        } catch (error) {}
+
         if (!response.ok) {
+            const validationError = data.errors
+                ? Object.values(data.errors).flat()[0]
+                : null;
+
             throw new Error(
-                data.message || "Could not remove the profile picture."
+                validationError ||
+                data.message ||
+                "The profile picture request failed."
             );
         }
 
-        const user = current();
-
-        if (user) {
->>>>>>> Stashed changes
-            delete user.profile_picture_url;
-            delete user.profilePicture;
-            persistUser(user);
-            updateAvatars(user);
-<<<<<<< Updated upstream
-          }
-          if (typeof showToast === 'function') showToast('Profile picture removed.');
-        } catch (error) {
-          alert(error.message || 'Could not remove the profile picture.');
-        }
-      });
-    }
-    const user = current();
-    if (user) updateAvatars(user);
-  }
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', addProfileControls);
-  } else {
-    addProfileControls();
-  }
-
-  function addHomeworkDetails() {
-=======
-
-            if (typeof updateUserInterface === "function") {
-                updateUserInterface(user);
-            }
-        }
-
-        if (typeof showToast === "function") {
-            showToast("Profile picture removed.");
-        }
+        return data;
     }
 
-    function addProfileControls() {
+    async function addProfileControls() {
         const input = document.getElementById("profilePictureInput");
-        const removeButton = document.getElementById(
-            "removeProfilePictureBtn"
-        );
+        const remove = document.getElementById("removeProfilePictureBtn");
 
         if (input && !input.dataset.bound) {
             input.dataset.bound = "true";
 
             input.addEventListener("change", async event => {
-                const file = event.target.files &&
-                    event.target.files[0];
-
+                const file = event.target.files && event.target.files[0];
                 if (!file) return;
 
                 if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
@@ -1335,7 +1153,22 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
                 }
 
                 try {
-                    await uploadProfilePicture(file);
+                    const data = await pictureRequest("POST", file);
+                    const user = current();
+
+                    if (user) {
+                        user.profile_picture_url = data.profile_picture_url;
+                        persistUser(user);
+                        updateAvatars(user);
+
+                        if (typeof updateUserInterface === "function") {
+                            updateUserInterface(user);
+                        }
+                    }
+
+                    if (typeof showToast === "function") {
+                        showToast("Profile picture saved successfully.");
+                    }
                 } catch (error) {
                     alert(error.message || "Could not save the profile picture.");
                 } finally {
@@ -1344,36 +1177,38 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
             });
         }
 
-        if (removeButton && !removeButton.dataset.bound) {
-            removeButton.dataset.bound = "true";
+        if (remove && !remove.dataset.bound) {
+            remove.dataset.bound = "true";
 
-            removeButton.addEventListener("click", async () => {
+            remove.addEventListener("click", async () => {
                 try {
-                    await removeProfilePicture();
+                    await pictureRequest("DELETE");
+                    const user = current();
+
+                    if (user) {
+                        delete user.profile_picture_url;
+                        delete user.profilePicture;
+                        persistUser(user);
+                        updateAvatars(user);
+
+                        if (typeof updateUserInterface === "function") {
+                            updateUserInterface(user);
+                        }
+                    }
+
+                    if (typeof showToast === "function") {
+                        showToast("Profile picture removed.");
+                    }
                 } catch (error) {
                     alert(error.message || "Could not remove the profile picture.");
                 }
             });
         }
+
+        const user = current();
+        if (user) updateAvatars(user);
     }
 
-    const originalUpdateUserInterface = window.updateUserInterface;
-
-    window.updateUserInterface = function (user) {
-        if (typeof originalUpdateUserInterface === "function") {
-            originalUpdateUserInterface(user);
-        }
-
-        const latestUser = user || current();
-
-        if (latestUser) {
-            updateAvatars(latestUser);
-        }
-
-        addProfileControls();
-    };
-
-    // Bind the buttons when the script loads.
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", addProfileControls);
     } else {
@@ -1381,51 +1216,46 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
     }
 })();
 
+/* ===== Teacher homework details ===== */
 function addHomeworkDetails() {
->>>>>>> Stashed changes
-    const existingBox = document.getElementById('homeworkDetailsBox');
-
-    // If the box already exists, ensure it is in the correct location.
     const submissionsBody = document.getElementById(
-        'teacherHomeworkSubmissionsTableBody'
+        "teacherHomeworkSubmissionsTableBody"
     );
+    const submissionsCard = submissionsBody?.closest(".table-card");
+    let box = document.getElementById("homeworkDetailsBox");
 
-    const submissionsCard = submissionsBody?.closest('.table-card');
-
-    if (existingBox) {
-        if (submissionsCard && existingBox.parentElement !== submissionsCard.parentElement) {
-            submissionsCard.insertAdjacentElement('afterend', existingBox);
+    if (box) {
+        if (
+            submissionsCard &&
+            box.previousElementSibling !== submissionsCard
+        ) {
+            submissionsCard.insertAdjacentElement("afterend", box);
         }
         return;
     }
 
-    const box = document.createElement('div');
-
-    box.id = 'homeworkDetailsBox';
-    box.className = 'details-box hidden';
-    box.setAttribute('role', 'dialog');
-    box.setAttribute('aria-modal', 'true');
+    box = document.createElement("div");
+    box.id = "homeworkDetailsBox";
+    box.className = "details-box hidden";
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    box.setAttribute("aria-labelledby", "homeworkDetailsTitle");
 
     box.innerHTML = `
         <div class="homework-details-content">
             <h3 id="homeworkDetailsTitle">Homework Details</h3>
-
             <p><b>Subject:</b> <span id="hdSubject"></span></p>
             <p><b>Due date / submitted:</b> <span id="hdDate"></span></p>
             <p><b>Status:</b> <span id="hdStatus"></span></p>
-
             <p><b>Description:</b></p>
             <p id="hdDescription" style="white-space:pre-wrap;overflow-wrap:anywhere"></p>
-
             <p id="hdStudentRow" class="hidden">
                 <b>Submitted by:</b> <span id="hdStudent"></span>
             </p>
-
             <div class="form-actions">
                 <button type="button" class="secondary-btn" id="closeHd">
                     Close
                 </button>
-
                 <button type="button" class="danger-btn hidden" id="deleteHd">
                     Delete Submission
                 </button>
@@ -1433,139 +1263,23 @@ function addHomeworkDetails() {
         </div>
     `;
 
-    // Place the details box immediately after the submissions card.
     if (submissionsCard) {
-        submissionsCard.insertAdjacentElement('afterend', box);
+        submissionsCard.insertAdjacentElement("afterend", box);
     } else {
-        // Fallback if the submissions card is not available yet.
         document.body.appendChild(box);
     }
 
-    document.getElementById('closeHd').addEventListener('click', () => {
-        box.classList.add('hidden');
+    document.getElementById("closeHd").addEventListener("click", () => {
+        box.classList.add("hidden");
     });
 
-    box.addEventListener('click', event => {
+    box.addEventListener("click", event => {
         if (event.target === box) {
-            box.classList.add('hidden');
+            box.classList.add("hidden");
         }
     });
 }
-
-    
-function addHomeworkDetails() {
-    const container = document.getElementById('homeworkDetailsContainer');
-    const submissionsBody = document.getElementById(
-        'teacherHomeworkSubmissionsTableBody'
-    );
-
-    // Find the correct location for the homework details.
-    const submissionsCard = submissionsBody?.closest('.table-card');
-
-    if (!container) {
-        console.error(
-            'homeworkDetailsContainer was not found. Add it to your HTML first.'
-        );
-        return;
-    }
-
-    // Ensure the container is placed directly after the submissions card.
-    if (
-        submissionsCard &&
-        container.previousElementSibling !== submissionsCard
-    ) {
-        submissionsCard.insertAdjacentElement('afterend', container);
-    }
-
-    // Reuse the existing details box if it has already been created.
-    let box = document.getElementById('homeworkDetailsBox');
-
-    if (box) {
-        if (box.parentElement !== container) {
-            container.appendChild(box);
-        }
-        return;
-    }
-
-    // Create the details box.
-    box = document.createElement('div');
-    box.id = 'homeworkDetailsBox';
-    box.className = 'details-box hidden';
-    box.setAttribute('role', 'dialog');
-    box.setAttribute('aria-modal', 'true');
-    box.setAttribute('aria-labelledby', 'homeworkDetailsTitle');
-
-    box.innerHTML = `
-        <div class="homework-details-content">
-            <h3 id="homeworkDetailsTitle">Homework Details</h3>
-
-            <p>
-                <b>Subject:</b>
-                <span id="hdSubject"></span>
-            </p>
-
-            <p>
-                <b>Due date / submitted:</b>
-                <span id="hdDate"></span>
-            </p>
-
-            <p>
-                <b>Status:</b>
-                <span id="hdStatus"></span>
-            </p>
-
-            <p><b>Description:</b></p>
-
-            <p
-                id="hdDescription"
-                style="white-space:pre-wrap;overflow-wrap:anywhere"
-            ></p>
-
-            <p id="hdStudentRow" class="hidden">
-                <b>Submitted by:</b>
-                <span id="hdStudent"></span>
-            </p>
-
-            <div class="form-actions">
-                <button
-                    type="button"
-                    class="secondary-btn"
-                    id="closeHd"
-                >
-                    Close
-                </button>
-
-                <button
-                    type="button"
-                    class="danger-btn hidden"
-                    id="deleteHd"
-                >
-                    Delete Submission
-                </button>
-            </div>
-        </div>
-    `;
-
-    // Put the details box inside the dedicated HTML container.
-    container.appendChild(box);
-
-    // Close button.
-    document.getElementById('closeHd').addEventListener('click', () => {
-        box.classList.add('hidden');
-    });
-
-    // Close when clicking the backdrop.
-    box.addEventListener('click', event => {
-        if (event.target === box) {
-            box.classList.add('hidden');
-        }
-    });
-
-    console.log('Homework details box initialized successfully.');
-}
-
-
-  window.viewHomework=function(id,row){
+window.viewHomework=function(id,row){
     const list=Array.isArray(window.portalHomeworkSubmissions)?window.portalHomeworkSubmissions:[];
     const h=list.find(x=>String(x.id)===String(id));
     const cells=row?row.querySelectorAll('td'):[];
