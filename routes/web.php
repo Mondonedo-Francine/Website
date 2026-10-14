@@ -2,11 +2,13 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\PortalDataController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
 Route::view('/portal', 'llcc-portal');
+
 Route::get('/admin', [AdminController::class, 'index']);
 Route::post('/admin/teachers', [AdminController::class, 'storeTeacher'])->middleware('throttle:10,1');
 Route::post('/admin/logout', [AdminController::class, 'logout']);
@@ -21,6 +23,14 @@ Route::get('/auth/user', function (Request $request) {
     return response()->json(['user' => AuthController::publicUser($request->user())]);
 });
 Route::post('/auth/logout', [AuthController::class, 'logout']);
+
+Route::middleware('auth')->prefix('api')->group(function () {
+    Route::get('/attendance/classes', [PortalDataController::class, 'attendanceClasses']);
+    Route::get('/attendance', [PortalDataController::class, 'attendance']);
+    Route::put('/attendance', [PortalDataController::class, 'saveAttendance']);
+    Route::get('/homework/submissions', [PortalDataController::class, 'submissions']);
+    Route::post('/homework/submissions', [PortalDataController::class, 'submitHomework']);
+});
 
 Route::get('/', function () {
     return view('welcome');
