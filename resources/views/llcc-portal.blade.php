@@ -754,6 +754,15 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="table-card" id="studentHomeworkResultsCard">
+                    <div class="card-header"><h3>Homework Submissions</h3></div>
+                    <div style="overflow-x:auto;">
+                        <table aria-label="My homework submissions">
+                            <thead><tr><th>Subject</th><th>Assignment</th><th>Submitted</th><th>Status</th><th>Section</th><th>Action</th></tr></thead>
+                            <tbody id="studentHomeworkResultsBody"><tr><td colspan="6">Loading homework submissions...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
 
                 <!-- Teacher view: activities sent and student turn-in counts -->
                 <div class="table-card hidden" id="teacherResultsCard">
@@ -793,6 +802,7 @@
                                 <div class="form-group"><label for="lessonClass">Send to class</label><select id="lessonClass" required><option value="">Select class</option><option>BSIT 1-A</option><option>BSIT 1-B</option><option>BSIT 2-A</option><option>BSIT 2-B</option><option>BIT2B</option><option>BIT AE3</option><option>BIT3AE</option><option>All Classes</option></select></div>
                                 <div class="form-group"><label for="lessonDate">Lesson date</label><input type="date" id="lessonDate"></div>
                                 <div class="form-group"><label for="lessonDueDate">Due date</label><input type="date" id="lessonDueDate"></div>
+                                <div class="form-group"><label for="lessonDueTime">Due time</label><input type="time" id="lessonDueTime"></div>
                                 <div class="form-group full-width"><label for="lessonDescription">Lesson details / instructions</label><textarea id="lessonDescription" rows="4" placeholder="Write the lesson objectives, topics, and instructions..."></textarea></div>
                                 <div class="form-group full-width"><label for="lessonFile">Attach lesson plan (optional)</label><input type="file" id="lessonFile" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt"></div>
                             </div>
