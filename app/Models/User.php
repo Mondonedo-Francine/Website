@@ -14,6 +14,7 @@ use Illuminate\Notifications\Notifiable;
     'email',
     'phone',
     'class_name',
+    'year_level',
     'role',
     'password',
     'profile_picture',
