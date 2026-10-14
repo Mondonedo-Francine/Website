@@ -377,10 +377,22 @@
                     </div>
                 </div>
 
+                <div class="profile-cover" id="profileCover" aria-label="Profile background">
+                    <div class="profile-cover-copy"><span class="profile-cover-kicker">YOUR SPACE</span><h2>Make your profile yours</h2><p>Personalize your photo and cover image.</p></div>
+                    <label class="profile-cover-button" for="profileBackgroundInput">Change Background</label>
+                    <input type="file" id="profileBackgroundInput" accept="image/*" hidden>
+                </div>
+
                 <div class="profile-grid">
 
                     <div class="profile-card">
                         <div class="profile-avatar" id="profileAvatar">CR</div>
+                        <div class="profile-picture-toolbar">
+                            <label class="secondary-btn" for="profilePictureInput">📷 Change Picture</label>
+                            <input type="file" id="profilePictureInput" accept="image/*" hidden>
+                            <button type="button" class="danger-btn" id="removeProfilePictureBtn">Remove</button>
+                        </div>
+                        <p class="profile-image-hint">JPG, PNG or WEBP · max 5 MB</p>
                         <h2 id="profileName">Student Name</h2>
                         <p id="profileRole">Student</p>
 
