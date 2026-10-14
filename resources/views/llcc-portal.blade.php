@@ -881,6 +881,5 @@
 </section>
 
 <div id="toast" class="toast"></div>
-<script src="{{ asset('js/llcc-portal.js') }}"></script>
 </body>
 </html>
