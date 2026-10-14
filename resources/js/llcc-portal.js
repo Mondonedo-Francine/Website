@@ -1981,18 +1981,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const count = uniqueStudents.size;
 
+                const resultKey = 'result-' + String(plan.id || plan.title);
+                window.__llccResultRows = window.__llccResultRows || {};
+                window.__llccResultRows[resultKey] = matching;
                 return '<tr>' +
                     '<td>' + esc(plan.subject || '—') + '</td>' +
                     '<td>' + esc(plan.title || 'Untitled activity') + '</td>' +
                     '<td>' + esc(fmtDate(plan.dueDate || '') + (plan.dueTime ? ' at ' + new Date('2000-01-01T' + plan.dueTime).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : ' (time not set)')) + '</td>' +
-                    '<td><span class="badge info">' +
-                        esc(plan.targetClass || '—') +
-                    '</span></td>' +
-                    '<td><span class="badge ' +
-                        (count ? 'success' : 'warning') + '">' +
-                        count +
-                        (count === 1 ? ' student' : ' students') +
-                        ' turned in</span></td>' +
+                    '<td><span class="badge info">' + esc(plan.targetClass || '—') + '</span></td>' +
+                    '<td><span class="badge ' + (count ? 'success' : 'warning') + '">' +
+                    count + (count === 1 ? ' student' : ' students') + ' turned in</span> ' +
+                    '<button type="button" class="secondary-btn" data-view-results="' + esc(resultKey) + '">View</button></td>' +
                     '</tr>';
             }).join('');
         } catch (error) {
@@ -2031,5 +2030,53 @@ document.addEventListener('DOMContentLoaded', () => {
             button.addEventListener('click', () => render());
         });
 
+    body.addEventListener('click', event => {
+        const button = event.target.closest('[data-view-results]');
+        if (!button) return;
+        const items = window.__llccResultRows?.[button.dataset.viewResults] || [];
+        const oldDialog = document.getElementById('turnInStudentsDialog');
+        if (oldDialog) oldDialog.remove();
+        const dialog = document.createElement('div');
+        dialog.id = 'turnInStudentsDialog';
+        dialog.className = 'details-box';
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-modal', 'true');
+        const content = document.createElement('div');
+        content.className = 'homework-details-content';
+        const heading = document.createElement('h3');
+        heading.textContent = 'Students who turned in';
+        content.appendChild(heading);
+        if (!items.length) {
+            const empty = document.createElement('p');
+            empty.textContent = 'No students have turned in this activity yet.';
+            content.appendChild(empty);
+        }
+        items.forEach(item => {
+            const studentButton = document.createElement('button');
+            studentButton.type = 'button';
+            studentButton.className = 'secondary-btn';
+            studentButton.textContent = (item.student?.name || 'Student') + ' · ' + (item.status === 'Submitted' ? 'Turned in' : (item.status || 'Turned in'));
+            studentButton.style.display = 'block';
+            studentButton.style.margin = '8px 0';
+            studentButton.addEventListener('click', () => {
+                dialog.remove();
+                window.viewHomework?.(item.id, null);
+            });
+            content.appendChild(studentButton);
+        });
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'secondary-btn';
+        close.textContent = 'Close';
+        close.addEventListener('click', () => dialog.remove());
+        content.appendChild(close);
+        dialog.appendChild(content);
+        document.body.appendChild(dialog);
+    });
+
     render();
+    setInterval(() => {
+        const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+        if (user?.role === 'teacher' && !document.hidden) render(user);
+    }, 5000);
 })();
