@@ -379,8 +379,6 @@
 
                 <div class="profile-cover" id="profileCover" aria-label="Profile background">
                     <div class="profile-cover-copy"><span class="profile-cover-kicker">YOUR SPACE</span><h2>Make your profile yours</h2><p>Personalize your photo and cover image.</p></div>
-                    <label class="profile-cover-button" for="profileBackgroundInput">Change Background</label>
-                    <input type="file" id="profileBackgroundInput" accept="image/*" hidden>
                 </div>
 
                 <div class="profile-grid">
