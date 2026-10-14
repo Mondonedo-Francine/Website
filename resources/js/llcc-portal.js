@@ -435,17 +435,43 @@ async function renderStudentAttendance(user) {
     const body = document.getElementById("studentAttendanceRecords");
     const message = document.getElementById("studentAttendanceMessage");
     const monthFilter = document.getElementById("attendanceMonth");
+    const dayFilter = document.getElementById("attendanceDay");
     if (!body || !message || !monthFilter) return;
+
+    const updateDayOptions = () => {
+        if (!dayFilter) return;
+        const previousDay = dayFilter.value || "all";
+        const month = monthFilter.value;
+        let dayCount = 31;
+        if (month !== "all") {
+            const [year, monthNumber] = month.split("-").map(Number);
+            dayCount = new Date(year, monthNumber, 0).getDate();
+        }
+        dayFilter.replaceChildren(new Option("All days", "all"));
+        for (let day = 1; day <= dayCount; day++) {
+            dayFilter.add(new Option(String(day), String(day)));
+        }
+        dayFilter.disabled = false;
+        dayFilter.value = Number(previousDay) <= dayCount && previousDay !== "all" ? previousDay : "all";
+    };
 
     const renderRows = records => {
         const month = monthFilter.value;
-        const filtered = records.filter(record => month === "all" || record.date.slice(0, 7) === month);
+        const day = dayFilter ? dayFilter.value : "all";
+        const filtered = records.filter(record => {
+            const matchesMonth = month === "all" || record.date.slice(0, 7) === month;
+            const recordDay = String(Number(record.date.slice(8, 10)));
+            const matchesDay = day === "all" || recordDay === day;
+            return matchesMonth && matchesDay;
+        });
         body.replaceChildren();
         if (!filtered.length) {
             const row = document.createElement("tr");
             const cell = document.createElement("td");
             cell.colSpan = 3;
-            cell.textContent = records.length ? "No attendance records for this month." : "No attendance records have been saved for your account yet.";
+            cell.textContent = records.length
+                ? "No attendance records match the selected month and day."
+                : "No attendance records have been saved for your account yet.";
             row.appendChild(cell);
             body.appendChild(row);
             return;
@@ -468,6 +494,7 @@ async function renderStudentAttendance(user) {
 
     body.innerHTML = '<tr><td colspan="3">Loading attendance records...</td></tr>';
     message.textContent = "Loading your saved attendance...";
+    if (dayFilter) dayFilter.disabled = true;
     try {
         const data = await portalApi("/api/attendance/student");
         const summary = data.summary || {};
@@ -477,7 +504,19 @@ async function renderStudentAttendance(user) {
         document.getElementById("studentTotalClasses").textContent = summary.total_classes ?? 0;
 
         const records = data.records || [];
-        const months = [...new Set(records.map(record => record.date.slice(0, 7)))].sort().reverse();
+        const years = new Set([new Date().getFullYear()]);
+        records.forEach(record => {
+            const year = Number(String(record.date || "").slice(0, 4));
+            if (Number.isInteger(year) && year > 0) years.add(year);
+        });
+        const months = [];
+        [...years].sort((a, b) => b - a).forEach(year => {
+            for (let monthNumber = 12; monthNumber >= 1; monthNumber--) {
+                const month = String(monthNumber).padStart(2, "0");
+                months.push(year + "-" + month);
+            }
+        });
+
         const previous = monthFilter.value;
         monthFilter.replaceChildren(new Option("All months", "all"));
         months.forEach(month => {
@@ -486,9 +525,16 @@ async function renderStudentAttendance(user) {
             monthFilter.add(new Option(date.toLocaleDateString("en-US", { month: "long", year: "numeric" }), month));
         });
         monthFilter.value = months.includes(previous) ? previous : "all";
+        updateDayOptions();
         renderRows(records);
-        message.textContent = records.length ? "Showing attendance records saved by your teacher." : "No attendance records are available yet. Your teacher must save attendance for your class first.";
-        monthFilter.onchange = () => renderRows(records);
+        message.textContent = records.length
+            ? "Showing attendance records saved by your teacher."
+            : "No attendance records are available yet. Your teacher must save attendance for your class first.";
+        monthFilter.onchange = () => {
+            updateDayOptions();
+            renderRows(records);
+        };
+        if (dayFilter) dayFilter.onchange = () => renderRows(records);
     } catch (error) {
         body.innerHTML = '<tr><td colspan="3">Could not load attendance records.</td></tr>';
         message.textContent = error.message || "Could not load your attendance. Please refresh and sign in again.";
