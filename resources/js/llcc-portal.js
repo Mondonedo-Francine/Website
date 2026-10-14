@@ -1032,6 +1032,7 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
 })();
 /* ===== Original inline script block 2 ===== */
 
+<<<<<<< Updated upstream
 (function(){
   const initialsOf = n => (n || 'CR').trim().split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0].toUpperCase()).join('');
   function current() {
@@ -1125,10 +1126,158 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
           await pictureRequest('DELETE');
           const user = current();
           if (user) {
+=======
+(function () {
+    const PROFILE_PICTURE_URL_KEY = "profile_picture_url";
+
+    function initialsOf(name) {
+        return (name || "CR")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map(word => word[0].toUpperCase())
+            .join("");
+    }
+
+    function current() {
+        return typeof getCurrentUser === "function"
+            ? getCurrentUser()
+            : JSON.parse(localStorage.getItem("currentUser") || "null");
+    }
+
+    function persistUser(user) {
+        if (typeof saveCurrentUser === "function") {
+            saveCurrentUser(user);
+        } else {
+            localStorage.setItem("currentUser", JSON.stringify(user));
+        }
+
+        if (typeof getUsers === "function" &&
+            typeof saveUsers === "function") {
+            const users = getUsers();
+            const index = users.findIndex(
+                item => item.id === user.id || item.email === user.email
+            );
+
+            if (index >= 0) {
+                users[index] = user;
+                saveUsers(users);
+            }
+        }
+    }
+
+    function setAvatar(element, user) {
+        if (!element) return;
+
+        const pictureUrl = user &&
+            (user.profile_picture_url || user[PROFILE_PICTURE_URL_KEY]);
+
+        element.replaceChildren();
+
+        if (pictureUrl) {
+            const image = document.createElement("img");
+            image.src = pictureUrl;
+            image.alt = "Profile picture";
+            image.onerror = () => {
+                element.replaceChildren();
+                element.textContent = initialsOf(user && user.name);
+            };
+            element.appendChild(image);
+        } else {
+            element.textContent = initialsOf(user && user.name);
+        }
+    }
+
+    function updateAvatars(user) {
+        setAvatar(document.getElementById("profileAvatar"), user);
+        setAvatar(document.getElementById("topAvatar"), user);
+    }
+
+    async function uploadProfilePicture(file) {
+        const formData = new FormData();
+        formData.append("picture", file);
+
+        const csrf = document.querySelector(
+            'meta[name="csrf-token"]'
+        )?.content || "";
+
+        const response = await fetch("/api/profile/picture", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+                Accept: "application/json",
+                "X-CSRF-TOKEN": csrf
+            },
+            body: formData
+        });
+
+        let data = {};
+        try {
+            data = await response.json();
+        } catch (error) {
+            // The server may return a non-JSON error page.
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || "Could not upload the profile picture."
+            );
+        }
+
+        const user = current();
+
+        if (user) {
+            user.profile_picture_url = data.profile_picture_url;
+            persistUser(user);
+            updateAvatars(user);
+
+            if (typeof updateUserInterface === "function") {
+                updateUserInterface(user);
+            }
+        }
+
+        if (typeof showToast === "function") {
+            showToast("Profile picture saved successfully.");
+        }
+    }
+
+    async function removeProfilePicture() {
+        const csrf = document.querySelector(
+            'meta[name="csrf-token"]'
+        )?.content || "";
+
+        const response = await fetch("/api/profile/picture", {
+            method: "DELETE",
+            credentials: "same-origin",
+            headers: {
+                Accept: "application/json",
+                "X-CSRF-TOKEN": csrf
+            }
+        });
+
+        let data = {};
+        try {
+            data = await response.json();
+        } catch (error) {
+            // Handle non-JSON server responses below.
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || "Could not remove the profile picture."
+            );
+        }
+
+        const user = current();
+
+        if (user) {
+>>>>>>> Stashed changes
             delete user.profile_picture_url;
             delete user.profilePicture;
             persistUser(user);
             updateAvatars(user);
+<<<<<<< Updated upstream
           }
           if (typeof showToast === 'function') showToast('Profile picture removed.');
         } catch (error) {
@@ -1146,6 +1295,94 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
   }
 
   function addHomeworkDetails() {
+=======
+
+            if (typeof updateUserInterface === "function") {
+                updateUserInterface(user);
+            }
+        }
+
+        if (typeof showToast === "function") {
+            showToast("Profile picture removed.");
+        }
+    }
+
+    function addProfileControls() {
+        const input = document.getElementById("profilePictureInput");
+        const removeButton = document.getElementById(
+            "removeProfilePictureBtn"
+        );
+
+        if (input && !input.dataset.bound) {
+            input.dataset.bound = "true";
+
+            input.addEventListener("change", async event => {
+                const file = event.target.files &&
+                    event.target.files[0];
+
+                if (!file) return;
+
+                if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+                    alert("Choose a JPG, PNG, or WEBP image.");
+                    event.target.value = "";
+                    return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                    alert("Please choose an image smaller than 5 MB.");
+                    event.target.value = "";
+                    return;
+                }
+
+                try {
+                    await uploadProfilePicture(file);
+                } catch (error) {
+                    alert(error.message || "Could not save the profile picture.");
+                } finally {
+                    event.target.value = "";
+                }
+            });
+        }
+
+        if (removeButton && !removeButton.dataset.bound) {
+            removeButton.dataset.bound = "true";
+
+            removeButton.addEventListener("click", async () => {
+                try {
+                    await removeProfilePicture();
+                } catch (error) {
+                    alert(error.message || "Could not remove the profile picture.");
+                }
+            });
+        }
+    }
+
+    const originalUpdateUserInterface = window.updateUserInterface;
+
+    window.updateUserInterface = function (user) {
+        if (typeof originalUpdateUserInterface === "function") {
+            originalUpdateUserInterface(user);
+        }
+
+        const latestUser = user || current();
+
+        if (latestUser) {
+            updateAvatars(latestUser);
+        }
+
+        addProfileControls();
+    };
+
+    // Bind the buttons when the script loads.
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", addProfileControls);
+    } else {
+        addProfileControls();
+    }
+})();
+
+function addHomeworkDetails() {
+>>>>>>> Stashed changes
     const existingBox = document.getElementById('homeworkDetailsBox');
 
     // If the box already exists, ensure it is in the correct location.
@@ -1840,10 +2077,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.nav-item[data-page="solutions"]').forEach(b=>b.addEventListener('click',render));
   render();
 })();
-
-})();
-
-;
 
 /* ===== Original inline script block 3 ===== */
 

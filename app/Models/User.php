@@ -9,7 +9,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+<<<<<<< Updated upstream
 #[Fillable(['name', 'email', 'phone', 'class_name', 'role', 'password', 'profile_picture'])]
+=======
+#[Fillable([
+    'name',
+    'email',
+    'phone',
+    'class_name',
+    'role',
+    'password',
+    'profile_picture',
+])]
+>>>>>>> Stashed changes
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ProfilePictureController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PortalDataController;
@@ -40,6 +41,16 @@ Route::middleware('auth')->prefix('api')->group(function () {
     Route::get('/messages/{user}', [\App\Http\Controllers\DirectMessageController::class, 'index']);
     Route::post('/messages/{user}', [\App\Http\Controllers\DirectMessageController::class, 'store'])
         ->middleware('throttle:60,1');
+
+        Route::post(
+    '/profile/picture',
+    [ProfilePictureController::class, 'store']
+);
+
+Route::delete(
+    '/profile/picture',
+    [ProfilePictureController::class, 'destroy']
+);
 });
 
 

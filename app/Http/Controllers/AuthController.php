@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\Storage;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -124,12 +125,16 @@ public function register(Request $request): JsonResponse
             'phone' => $user->phone,
             'role' => $user->role,
             'class_name' => $user->class_name,
+<<<<<<< Updated upstream
             'profile_picture_url' => $user->profile_picture
                 ? Storage::disk('public')->url($user->profile_picture)
                 : null,
             'profile_picture_url' => $user->profile_picture
                 ? Storage::disk('public')->url($user->profile_picture)
                 : null,
+=======
+            'profile_picture' => $user->profile_picture ? Storage::disk('public')->url($user->profile_picture) : null,
+>>>>>>> Stashed changes
         ];
     }
 }
