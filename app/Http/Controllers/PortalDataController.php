@@ -185,6 +185,25 @@ class PortalDataController extends Controller
         )->all(),
     ]);
 }
+    public function updateHomeworkStatus(Request $request, HomeworkSubmission $submission): JsonResponse
+    {
+        $this->requireRole($request, 'teacher');
+
+        $data = $request->validate([
+            'status' => ['required', 'in:Done,Not Done'],
+        ]);
+
+        $submission->update(['status' => $data['status']]);
+
+        return response()->json([
+            'message' => 'Homework status updated successfully.',
+            'submission' => [
+                'id' => $submission->id,
+                'status' => $submission->status,
+            ],
+        ]);
+    }
+
     public function submitHomework(Request $request): JsonResponse
     {
         $this->requireRole($request, 'student');
