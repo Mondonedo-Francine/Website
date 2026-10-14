@@ -340,22 +340,14 @@ function renderTeacherCalendar() {
     const today = new Date();
     const todayCode = ["S", "M", "T", "W", "TH", "F", "SA"][today.getDay()];
     const weekdayCodes = ["S", "M", "T", "W", "TH", "F", "SA"];
-    const classDays = new Set();
-
-    document.querySelectorAll("#schedulePage .teacher-schedule-table .schedule-day").forEach(day => {
-        const code = scheduleDayCodeFromLabel(day.textContent);
-        if (weekdayCodes.includes(code)) classDays.add(code);
-    });
-
     let grid = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(name => `<span class="teacher-calendar-weekday">${name}</span>`).join("");
     for (let blank = 0; blank < firstWeekday; blank++) grid += '<span class="teacher-calendar-blank" aria-hidden="true"></span>';
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
         const code = weekdayCodes[date.getDay()];
         const isToday = date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate();
-        const hasClass = classDays.has(code);
-        const classes = ["teacher-calendar-date", hasClass ? "has-class" : "", isToday ? "is-today" : ""].filter(Boolean).join(" ");
-        const label = `${date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}${hasClass ? ", scheduled class day" : ""}${isToday ? ", today" : ""}`;
+        const classes = ["teacher-calendar-date", isToday ? "is-today" : ""].filter(Boolean).join(" ");
+        const label = `${date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}${isToday ? ", today" : ""}`;
         grid += `<span class="${classes}" title="${label}" aria-label="${label}">${day}</span>`;
     }
     const usedCells = firstWeekday + daysInMonth;
@@ -369,7 +361,7 @@ function renderTeacherCalendar() {
             <button type="button" class="teacher-calendar-nav" data-calendar-next aria-label="Next month">›</button>
         </div>
         <div class="teacher-calendar-grid">${grid}</div>
-        <div class="teacher-calendar-legend"><span class="teacher-calendar-legend-dot"></span> Class days highlighted</div>`;
+        <div class="teacher-calendar-legend"><span class="teacher-calendar-legend-dot"></span> Today highlighted</div>`;
 
     calendar.querySelector("[data-calendar-prev]").addEventListener("click", () => {
         dashboardCalendarMonth = new Date(year, month - 1, 1);
