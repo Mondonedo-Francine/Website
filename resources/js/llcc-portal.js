@@ -269,6 +269,26 @@ function updateUserInterface(user) {
     document.getElementById("profileEmail").value = user.email;
     document.getElementById("profilePhone").value = user.phone;
     document.getElementById("profileRoleInput").value = roleName;
+
+    // Render the profile picture URL returned by Laravel after login.
+    ["profileAvatar", "topAvatar"].forEach(id => {
+        const avatar = document.getElementById(id);
+        if (!avatar) return;
+        const pictureUrl = user.profile_picture_url;
+        avatar.replaceChildren();
+        if (pictureUrl) {
+            const image = document.createElement("img");
+            image.src = pictureUrl;
+            image.alt = "Profile picture";
+            image.onerror = () => {
+                avatar.replaceChildren();
+                avatar.textContent = getInitials(user.name);
+            };
+            avatar.appendChild(image);
+        } else {
+            avatar.textContent = getInitials(user.name);
+        }
+    });
 }
 
 /* =========================================================
@@ -1013,23 +1033,119 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
 /* ===== Original inline script block 2 ===== */
 
 (function(){
-  const initialsOf = n => (n||'CR').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase();
-  function current(){return typeof getCurrentUser==='function'?getCurrentUser():JSON.parse(localStorage.getItem('currentUser')||'null')}
-  function persistUser(u){if(typeof getUsers==='function'&&typeof saveUsers==='function'){const users=getUsers();const i=users.findIndex(x=>x.email===u.email||x.id===u.id);if(i>=0)users[i]=u;else users.push(u);saveUsers(users)}if(typeof saveCurrentUser==='function')saveCurrentUser(u);else localStorage.setItem('currentUser',JSON.stringify(u));if(typeof updateUserInterface==='function')updateUserInterface(u)}
-  const PROFILE_PICTURE_KEY='llcc_profile_picture_by_user';
-  function pictureStore(){try{return JSON.parse(localStorage.getItem(PROFILE_PICTURE_KEY)||'{}')}catch(e){return {}}}
-  function pictureIdentity(u){return String((u&&u.id)||((u&&u.email)||'').toLowerCase())}
-  function storePicture(u,pic){const store=pictureStore(),key=pictureIdentity(u);if(!key)return;if(pic)store[key]=pic;else delete store[key];localStorage.setItem(PROFILE_PICTURE_KEY,JSON.stringify(store))}
-  function setAvatar(el,u){if(!el)return;const pic=u&&u.profilePicture;el.replaceChildren();if(pic){const img=document.createElement('img');img.src=pic;img.alt='Profile picture';el.appendChild(img)}else{el.textContent=initialsOf(u&&u.name)}}
-  function readCompressedImage(file,maxDimension,quality){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('Could not read this image.'));reader.onload=()=>{const image=new Image();image.onerror=()=>reject(new Error('This image could not be opened.'));image.onload=()=>{const scale=Math.min(1,maxDimension/Math.max(image.width,image.height));const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);resolve(canvas.toDataURL('image/jpeg',quality))};image.src=reader.result};reader.readAsDataURL(file)})}
-  function addProfileControls(){const avatar=document.getElementById('profileAvatar'),input=document.getElementById('profilePictureInput'),remove=document.getElementById('removeProfilePictureBtn');if(!avatar||!input)return;
-    if(!input.dataset.bound){input.dataset.bound='1';input.addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;if(!['image/jpeg','image/png','image/webp'].includes(f.type)){alert('Choose a JPG, PNG, or WEBP image.');e.target.value='';return}if(f.size>5*1024*1024){alert('Please choose an image smaller than 5 MB.');e.target.value='';return}try{const u=current()||{};u.profilePicture=await readCompressedImage(f,480,.82);storePicture(u,u.profilePicture);persistUser(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);if(typeof showToast==='function')showToast('Profile picture saved on this browser.')}catch(err){alert(err.message||'Could not save this image.')}finally{e.target.value=''}})}
-    if(remove&&!remove.dataset.bound){remove.dataset.bound='1';remove.addEventListener('click',()=>{const u=current()||{};delete u.profilePicture;storePicture(u,null);persistUser(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);if(typeof showToast==='function')showToast('Profile picture removed.')})}
+  const initialsOf = n => (n || 'CR').trim().split(/\s+/).filter(Boolean).slice(0,2).map(x => x[0].toUpperCase()).join('');
+  function current() {
+    return typeof getCurrentUser === 'function'
+      ? getCurrentUser()
+      : JSON.parse(localStorage.getItem('currentUser') || 'null');
   }
-  const oldUpdate=window.updateUserInterface;
-  window.updateUserInterface=function(u){if(u){const store=pictureStore(),key=pictureIdentity(u);if(!u.profilePicture&&key&&store[key])u={...u,profilePicture:store[key]};if(u.profilePicture&&key&&!store[key])storePicture(u,u.profilePicture)}if(oldUpdate)oldUpdate(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);addProfileControls()};
-  
-function addHomeworkDetails() {
+  function persistUser(user) {
+    if (typeof saveCurrentUser === 'function') saveCurrentUser(user);
+    else localStorage.setItem('currentUser', JSON.stringify(user));
+    if (typeof getUsers === 'function' && typeof saveUsers === 'function') {
+      const users = getUsers();
+      const index = users.findIndex(item => item.id === user.id || item.email === user.email);
+      if (index >= 0) { users[index] = user; saveUsers(users); }
+    }
+  }
+  function setAvatar(element, user) {
+    if (!element) return;
+    const url = user && user.profile_picture_url;
+    element.replaceChildren();
+    if (url) {
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Profile picture';
+      img.onerror = () => { element.replaceChildren(); element.textContent = initialsOf(user && user.name); };
+      element.appendChild(img);
+    } else {
+      element.textContent = initialsOf(user && user.name);
+    }
+  }
+  function updateAvatars(user) {
+    setAvatar(document.getElementById('profileAvatar'), user);
+    setAvatar(document.getElementById('topAvatar'), user);
+  }
+  async function pictureRequest(method, file) {
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const headers = { Accept: 'application/json', 'X-CSRF-TOKEN': csrf };
+    const options = { method, credentials: 'same-origin', headers };
+    if (file) {
+      const body = new FormData();
+      body.append('picture', file);
+      options.body = body;
+    }
+    const response = await fetch('/api/profile/picture', options);
+    let data = {};
+    try { data = await response.json(); } catch (error) {}
+    if (!response.ok) {
+      const firstValidationError = data.errors ? Object.values(data.errors).flat()[0] : null;
+      throw new Error(firstValidationError || data.message || 'The profile picture request failed.');
+    }
+    return data;
+  }
+  async function addProfileControls() {
+    const input = document.getElementById('profilePictureInput');
+    const remove = document.getElementById('removeProfilePictureBtn');
+    if (input && !input.dataset.bound) {
+      input.dataset.bound = 'true';
+      input.addEventListener('change', async event => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) return;
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+          alert('Choose a JPG, PNG, or WEBP image.');
+          event.target.value = '';
+          return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          alert('Please choose an image smaller than 5 MB.');
+          event.target.value = '';
+          return;
+        }
+        try {
+          const data = await pictureRequest('POST', file);
+          const user = current();
+          if (user) {
+            user.profile_picture_url = data.profile_picture_url;
+            persistUser(user);
+            updateAvatars(user);
+          }
+          if (typeof showToast === 'function') showToast('Profile picture saved successfully.');
+        } catch (error) {
+          alert(error.message || 'Could not save the profile picture.');
+        } finally {
+          event.target.value = '';
+        }
+      });
+    }
+    if (remove && !remove.dataset.bound) {
+      remove.dataset.bound = 'true';
+      remove.addEventListener('click', async () => {
+        try {
+          await pictureRequest('DELETE');
+          const user = current();
+          if (user) {
+            delete user.profile_picture_url;
+            delete user.profilePicture;
+            persistUser(user);
+            updateAvatars(user);
+          }
+          if (typeof showToast === 'function') showToast('Profile picture removed.');
+        } catch (error) {
+          alert(error.message || 'Could not remove the profile picture.');
+        }
+      });
+    }
+    const user = current();
+    if (user) updateAvatars(user);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', addProfileControls);
+  } else {
+    addProfileControls();
+  }
+
+  function addHomeworkDetails() {
     const existingBox = document.getElementById('homeworkDetailsBox');
 
     // If the box already exists, ensure it is in the correct location.
