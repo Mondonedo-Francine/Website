@@ -303,13 +303,6 @@ function updateUserInterface(user) {
 /* =========================================================
    TEACHER CLASS ATTENDANCE
 ========================================================= */
-const teacherClasses = {
-    "BSIT 1-A": ["Althea Cruz", "Joshua Garcia", "Mika Santos", "Nathan Reyes", "Sofia Flores"],
-    "BSIT 1-B": ["Andrea Ramos", "Daniel Torres", "Ella Mendoza", "Gabriel Lim", "Isabelle Tan"],
-    "BSIT 2-A": ["Alyssa Dizon", "Brandon Lee", "Chloe Rivera", "Dylan Bautista", "Faith Navarro"],
-    "BSIT 2-B": ["Angela Villanueva", "Christian Flores", "Danica Reyes", "Ethan Mendoza", "Jasmine Cruz", "Kyle Santos", "Lance Garcia", "Mia Torres"]
-};
-
 /* =========================================================
    ROLE-SPECIFIC TEACHER DASHBOARD SUMMARY + CALENDAR
 ========================================================= */
@@ -329,7 +322,6 @@ function getTeacherScheduleRowsForDay(dayCode) {
 
 function renderTeacherDashboard(user) {
     const isTeacher = Boolean(user && user.role === "teacher");
-    const studentCount = Object.values(teacherClasses).reduce((total, roster) => total + roster.length, 0);
     const dayCodes = ["S", "M", "T", "W", "TH", "F", "SA"];
     const todayCode = dayCodes[new Date().getDay()];
     const studentLabel = document.getElementById("attendanceStatLabel");
@@ -341,7 +333,21 @@ function renderTeacherDashboard(user) {
     if (classCountLabel) classCountLabel.textContent = isTeacher ? "Classes Today" : "Completed Courses";
 
     const studentCountValue = document.getElementById("attendanceStat");
-    if (studentCountValue) studentCountValue.textContent = isTeacher ? String(studentCount) : "92%";
+    if (studentCountValue) studentCountValue.textContent = isTeacher ? "…" : "92%";
+
+    if (isTeacher && studentCountValue) {
+        portalApi("/api/teacher/dashboard-stats")
+            .then(data => {
+                const currentUser = getCurrentUser();
+                if (currentUser && currentUser.role === "teacher") {
+                    studentCountValue.textContent = String(data.students_across_classes ?? 0);
+                }
+            })
+            .catch(error => {
+                studentCountValue.textContent = "—";
+                console.warn("Teacher dashboard statistics could not be loaded.", error);
+            });
+    }
 
     const classesTodayValue = document.getElementById("classesTodayStat");
     if (classesTodayValue) {
