@@ -314,12 +314,8 @@
                             <a href="#" data-open-page="homework">View All</a>
                         </div>
 
-                        <div class="activity-item">
-                            <div class="activity-icon">✓</div>
-                            <div>
-                                <strong>Mathematics homework submitted</strong>
-                                <span>Today, 10:30 AM</span>
-                            </div>
+                        <p class="student-recent-activity-empty">Loading recent activity…</p>
+                    </div>
                         </div>
 
                         <div class="activity-item">
@@ -538,11 +534,12 @@
                 <div class="table-card">
                     <div class="card-header">
                         <h3>Attendance Details</h3>
-                        <select id="attendanceMonth" style="padding:9px;border:1px solid #ddd;border-radius:6px;">
-                            <option>September 2026</option>
-                            <option>August 2026</option>
-                            <option>July 2026</option>
-                        </select>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <select id="attendanceMonth" aria-label="Select month" style="padding:9px;border:1px solid #ddd;border-radius:6px;">
+                                <option value="all">All months</option><option value="2026-09">September 2026</option><option value="2026-08">August 2026</option><option value="2026-07">July 2026</option>
+                            </select>
+                            <select id="attendanceDay" aria-label="Select day" style="padding:9px;border:1px solid #ddd;border-radius:6px;" disabled><option value="all">All days</option></select>
+                        </div>
                     </div>
 
                     <table>
