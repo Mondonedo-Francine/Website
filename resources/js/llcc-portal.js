@@ -704,12 +704,47 @@ document.getElementById("profileForm").addEventListener("submit", function(event
 ========================================================= */
 
 document.getElementById("addHomeworkBtn").addEventListener("click", function() {
+    refreshHomeworkAssignmentOptions();
     document.getElementById("homeworkFormCard").classList.remove("hidden");
 });
 
 document.getElementById("cancelHomeworkBtn").addEventListener("click", function() {
     document.getElementById("homeworkFormCard").classList.add("hidden");
 });
+// Populate the student assignment dropdown from activities sent in Solutions.
+function refreshHomeworkAssignmentOptions() {
+    const select = document.getElementById("homeworkTitle");
+    if (!select) return;
+    const user = getCurrentUser();
+    let plans = [];
+    try { plans = JSON.parse(localStorage.getItem("llcc_class_lesson_plans_v1") || "[]"); } catch (_) {}
+    const relevant = plans.filter(plan => {
+        if (user?.role !== "student") return false;
+        const target = String(plan.targetClass || "");
+        return target === "All Classes" || !user.className || target === user.className;
+    });
+    const current = select.value;
+    select.replaceChildren(new Option("Choose an activity sent by your teacher", ""));
+    relevant.forEach(plan => {
+        if (String(plan.subject || "") !== String(document.getElementById("homeworkSubject")?.value || "")) return;
+        const option = new Option(plan.title + " — " + plan.subject, plan.title);
+        select.add(option);
+    });
+    if ([...select.options].some(option => option.value === current)) select.value = current;
+    if (relevant.length === 0) {
+        select.add(new Option("No activities found — check Solutions", ""));
+    }
+}
+document.getElementById("homeworkSubject")?.addEventListener("change", refreshHomeworkAssignmentOptions);
+document.getElementById("homeworkAttachmentType")?.addEventListener("change", event => {
+    const value = event.target.value;
+    document.getElementById("homeworkFileGroup")?.classList.toggle("hidden", value !== "file");
+    document.getElementById("homeworkLinkGroup")?.classList.toggle("hidden", value !== "link" && value !== "drive");
+});
+window.addEventListener("storage", event => {
+    if (!event.key || event.key === "llcc_class_lesson_plans_v1") refreshHomeworkAssignmentOptions();
+});
+
 
 document.getElementById("homeworkForm").addEventListener("submit", async function(event) {
     event.preventDefault();
@@ -721,18 +756,42 @@ document.getElementById("homeworkForm").addEventListener("submit", async functio
         return;
     }
 
+    const selectedTitle = document.getElementById("homeworkTitle").value;
+    const attachmentType = document.getElementById("homeworkAttachmentType")?.value || "";
+    const attachmentUrl = document.getElementById("homeworkAttachmentUrl")?.value.trim() || "";
+    const attachmentFile = document.getElementById("homeworkAttachmentFile")?.files?.[0] || null;
     const payload = {
         subject: document.getElementById("homeworkSubject").value,
-        title: document.getElementById("homeworkTitle").value.trim(),
+        title: selectedTitle,
         description: document.getElementById("homeworkDescription").value.trim()
     };
+    if (!selectedTitle) {
+        showToast("Choose an activity sent by your teacher first.");
+        return;
+    }
+    if (attachmentType === "link" || attachmentType === "drive") {
+        if (!attachmentUrl) {
+            showToast("Paste the attachment link or Google Drive link, or choose No attachment.");
+            return;
+        }
+        payload.description += "\\n\\n" + (attachmentType === "drive" ? "Google Drive: " : "Attachment link: ") + attachmentUrl;
+    }
+    if (attachmentType === "file" && attachmentFile) {
+        if (attachmentFile.size > 5 * 1024 * 1024) {
+            showToast("Please choose a file smaller than 5 MB.");
+            return;
+        }
+        payload.description += "\\n\\nAttached file selected: " + attachmentFile.name + ". For this demo, please use a shareable file/Drive link so your teacher can open it.";
+    }
     button.disabled = true;
     try {
         await portalApi("/api/homework/submissions", { method: "POST", body: JSON.stringify(payload) });
         form.reset();
+        document.getElementById("homeworkFileGroup")?.classList.add("hidden");
+        document.getElementById("homeworkLinkGroup")?.classList.add("hidden");
         document.getElementById("homeworkFormCard").classList.add("hidden");
         await renderCustomHomework();
-        showToast("Homework submitted successfully.");
+        showToast("Turned in successfully.");
     } catch (error) {
         showToast(error.message || "Could not submit homework.");
     } finally {
@@ -821,7 +880,7 @@ async function renderCustomHomework() {
                                 body: JSON.stringify({ status: statusSelect.value })
                             });
                             homework.status = statusSelect.value;
-                            status.textContent = homework.status;
+                            status.textContent = homework.status === "Submitted" ? "Turned in" : homework.status;
                             showToast("Homework marked " + homework.status + ".");
                             renderStudentHomeworkResults(window.portalHomeworkSubmissions);
                         } catch (error) {
