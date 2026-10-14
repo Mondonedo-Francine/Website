@@ -872,16 +872,33 @@ async function renderCustomHomework() {
                     const status = document.createElement("td");
                     status.textContent = homework.status === "Submitted" ? "Turned in" : (homework.status || "Turned in");
                     const action = document.createElement("td");
+                    action.className = "homework-action-cell";
+                    const view = document.createElement("button");
+                    view.type = "button";
+                    view.className = "secondary-btn homework-view-btn";
+                    view.textContent = "View submission";
+                    view.addEventListener("click", () => window.viewHomework?.(homework.id, row));
+                    const statusWrap = document.createElement("div");
+                    statusWrap.className = "homework-status-control";
+                    const statusLabel = document.createElement("label");
+                    statusLabel.textContent = "Review status";
+                    statusLabel.className = "homework-status-label";
                     const statusSelect = document.createElement("select");
-                    statusSelect.setAttribute("aria-label", "Homework completion status");
-                    [["Submitted", "Turned in"], ["Done", "Done"], ["Not Done", "Not Done"]].forEach(([value, label]) => {
+                    statusSelect.className = "homework-status-select";
+                    statusSelect.setAttribute("aria-label", "Homework review status");
+                    [["Submitted", "Turned in"], ["Done", "Done"], ["Not Done", "Incomplete"]].forEach(([value, label]) => {
                         const option = document.createElement("option");
                         option.value = value;
                         option.textContent = label;
                         statusSelect.appendChild(option);
                     });
                     statusSelect.value = ["Submitted", "Done", "Not Done"].includes(homework.status) ? homework.status : "Submitted";
+                    const syncStatusStyle = () => {
+                        statusSelect.dataset.status = statusSelect.value === "Done" ? "done" : statusSelect.value === "Not Done" ? "incomplete" : "turned-in";
+                    };
+                    syncStatusStyle();
                     statusSelect.addEventListener("change", async () => {
+                        const previousStatus = homework.status || "Submitted";
                         statusSelect.disabled = true;
                         try {
                             await portalApi("/api/homework/submissions/" + homework.id + "/status", {
@@ -890,23 +907,19 @@ async function renderCustomHomework() {
                             });
                             homework.status = statusSelect.value;
                             status.textContent = homework.status === "Submitted" ? "Turned in" : homework.status;
-                            showToast("Homework marked " + homework.status + ".");
+                            syncStatusStyle();
+                            showToast("Review status saved: " + (homework.status === "Not Done" ? "Incomplete" : homework.status === "Submitted" ? "Turned in" : homework.status) + ".");
                             renderStudentHomeworkResults(window.portalHomeworkSubmissions);
                         } catch (error) {
+                            statusSelect.value = previousStatus;
+                            syncStatusStyle();
                             showToast(error.message || "Could not update homework status.");
-                            statusSelect.value = homework.status || "Submitted";
                         } finally {
                             statusSelect.disabled = false;
                         }
                     });
-                    action.appendChild(statusSelect);
-                    const view = document.createElement("button");
-                    view.type = "button";
-                    view.className = "secondary-btn";
-                    view.textContent = "View";
-                    view.addEventListener("click", () => window.viewHomework?.(homework.id, row));
-                    action.appendChild(view);
-                    action.appendChild(statusSelect);
+                    statusWrap.append(statusLabel, statusSelect);
+                    action.append(view, statusWrap);
                     row.append(student, subject, title, submitted, status, action);
                     teacherTable.appendChild(row);
                 });
