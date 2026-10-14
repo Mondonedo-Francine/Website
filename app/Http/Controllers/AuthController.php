@@ -17,7 +17,7 @@ class AuthController extends Controller
         $data = $request->validate([
             'username' => ['required', 'string', 'max:255'],
             'password' => ['required', 'string', 'max:255'],
-            'role' => ['required', 'in:student,teacher,guest'],
+            'role' => ['required', 'in:student,teacher,guest,admin'],
         ]);
 
         $username = trim($data['username']);
