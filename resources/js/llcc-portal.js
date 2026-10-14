@@ -1042,7 +1042,7 @@ if (existingUser) {
     window.addEventListener('storage',e=>{if(e.key===storageKey){renderList();renderMessages()}});
     refreshForCurrentUser();
   }
-  document.addEventListener('DOMContentLoaded',()=>{addProfileControls();addHomeworkDetails();makeHomeworkButtons();addSolutions();initTeacherMessages();const c=document.getElementById('closeHd');if(c)c.onclick=()=>document.getElementById('homeworkDetailsBox').classList.add('hidden')});
+  document.addEventListener('DOMContentLoaded',()=>{addProfileControls();addHomeworkDetails();makeHomeworkButtons();renderCustomHomework();addSolutions();initTeacherMessages()});
 
 (function initClassLessonPlans(){
   const storageKey='llcc_class_lesson_plans_v1';
