@@ -1150,3 +1150,24 @@ td {
 #averageResultStatCard:has(.teacher-calendar-widget:not(.hidden)) { padding-top:18px; padding-bottom:16px; }
 #averageResultStatCard:has(.teacher-calendar-widget:not(.hidden)) #studentAverageResultContent { display:none; }
 @media(max-width:600px) { .teacher-calendar-title {font-size:13px;} }
+
+
+/* Teacher attendance improvements */
+.attendance-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
+.attendance-summary-card{background:#fff;border:1px solid #e5eaf2;border-left:4px solid #64748b;border-radius:10px;padding:16px;box-shadow:0 4px 14px rgba(25,40,70,.05);display:flex;flex-direction:column;gap:8px}
+.attendance-summary-card span{font-size:12px;color:#586579;font-weight:600}
+.attendance-summary-card strong{font-size:27px;line-height:1.1;color:#172033}
+.attendance-summary-card.total{border-left-color:#2563eb}.attendance-summary-card.present{border-left-color:#16a34a}.attendance-summary-card.absent{border-left-color:#dc2626}.attendance-summary-card.late{border-left-color:#f97316}
+.attendance-status-select{padding:8px 10px;border:1px solid #ccd1dc;border-radius:7px;min-width:125px;font-weight:700;cursor:pointer}
+.attendance-status-select.status-present{background:#dcfce7;color:#166534;border-color:#86efac}
+.attendance-status-select.status-absent{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.attendance-status-select.status-late{background:#ffedd5;color:#9a3412;border-color:#fdba74}
+.attendance-status-select.status-excused{background:#dbeafe;color:#1e40af;border-color:#93c5fd}
+.attendance-saved{display:block!important;background:#dcfce7!important;color:#166534!important;border:1px solid #86efac;padding:12px 14px;border-radius:8px;margin:10px 0}
+.attendance-unsaved{display:block!important;background:#fff7ed!important;color:#9a3412!important;border:1px solid #fdba74;padding:12px 14px;border-radius:8px;margin:10px 0}
+.attendance-history{margin-top:22px;padding:16px;border:1px solid #e5eaf2;border-radius:10px;background:#fafbff}
+.attendance-history h3{font-size:15px;margin-bottom:10px;color:#263248}
+.attendance-history ul{list-style:none;display:grid;gap:8px}
+.attendance-history li{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;padding:9px 0;border-bottom:1px solid #e8ecf3}
+.attendance-history li:last-child{border-bottom:0}.attendance-history li span{color:#64748b}.attendance-history-empty{color:#64748b}
+@media(max-width:640px){.attendance-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.attendance-summary-card{padding:12px}.attendance-summary-card strong{font-size:23px}}
