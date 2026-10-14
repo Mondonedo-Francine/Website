@@ -1015,12 +1015,32 @@ document.getElementById("logoutBtn").addEventListener("click", async function() 
   function addProfileControls(){
     const avatar=document.getElementById('profileAvatar');if(!avatar)return;
     const pictureInput=document.getElementById('profilePictureInput');
-    if(pictureInput&&!pictureInput.dataset.bound){pictureInput.dataset.bound='1';pictureInput.addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;if(!f.type.startsWith('image/')){alert('Choose an image file.');return}if(f.size>5*1024*1024){alert('Please choose an image smaller than 5 MB.');e.target.value='';return}try{const u=current()||{};u.profilePicture=await readCompressedImage(f,480,.82);persistUser(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);showToast('Profile picture saved on this browser.')}catch(err){alert(err.message||'Could not save this image.')}})}
-    const remove=document.getElementById('removeProfilePictureBtn');if(remove&&!remove.dataset.bound){remove.dataset.bound='1';remove.addEventListener('click',()=>{const u=current()||{};delete u.profilePicture;persistUser(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);if(pictureInput)pictureInput.value='';showToast('Profile picture removed.')})}
-    const bgInput=document.getElementById('profileBackgroundInput');if(bgInput&&!bgInput.dataset.bound){bgInput.dataset.bound='1';bgInput.addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;if(!f.type.startsWith('image/')){alert('Choose an image file.');return}if(f.size>5*1024*1024){alert('Please choose an image smaller than 5 MB.');e.target.value='';return}try{const u=current()||{};u.profileBackground=await readCompressedImage(f,1800,.78);persistUser(u);setProfileBackground(u);showToast('Profile background saved on this browser.')}catch(err){alert(err.message||'Could not save this background.')}})}
+    if(pictureInput&&!pictureInput.dataset.bound){pictureInput.dataset.bound='1';pictureInput.addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;if(!f.type.startsWith('image/')){alert('Choose an image file.');return}if(f.size>5*1024*1024){alert('Please choose an image smaller than 5 MB.');e.target.value='';return}try{const u=current()||{};u.profilePicture=await readCompressedImage(f,480,.82);storePicture(u,u.profilePicture);persistUser(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);showToast('Profile picture saved on this browser.')}catch(err){alert(err.message||'Could not save this image.')}})}
+    const remove=document.getElementById('removeProfilePictureBtn');if(remove&&!remove.dataset.bound){remove.dataset.bound='1';remove.addEventListener('click',()=>{const u=current()||{};delete u.profilePicture;storePicture(u,null);persistUser(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);if(pictureInput)pictureInput.value='';showToast('Profile picture removed.')})}
   }
+  // Keep the selected avatar in a dedicated browser-storage entry. The Laravel
+  // session response does not contain profilePicture, so merge the saved image
+  // back into each fresh user response before rendering the profile.
+  const PROFILE_PICTURE_KEY = 'llcc_profile_picture_by_user';
+  function pictureStore(){try{return JSON.parse(localStorage.getItem(PROFILE_PICTURE_KEY)||'{}')}catch(error){return {}}}
+  function pictureIdentity(u){return String((u&&u.id)||((u&&u.email)||'').toLowerCase())}
+  function storePicture(u,picture){const store=pictureStore();const key=pictureIdentity(u);if(!key)return;if(picture)store[key]=picture;else delete store[key];localStorage.setItem(PROFILE_PICTURE_KEY,JSON.stringify(store))}
   const oldUpdate=window.updateUserInterface;
-  window.updateUserInterface=function(u){if(u&&typeof getUsers==='function'){const saved=(getUsers()||[]).find(x=>(x.id&&x.id===u.id)||(x.email&&u.email&&x.email.toLowerCase()===u.email.toLowerCase()));if(saved){if(!u.profilePicture&&saved.profilePicture)u={...u,profilePicture:saved.profilePicture};if(!u.profileBackground&&saved.profileBackground)u={...u,profileBackground:saved.profileBackground};}}if(oldUpdate)oldUpdate(u);setAvatar(document.getElementById('profileAvatar'),u);setAvatar(document.getElementById('topAvatar'),u);setProfileBackground(u);addProfileControls()};
+  window.updateUserInterface=function(u){
+    if(u){
+      const store=pictureStore();const key=pictureIdentity(u);
+      if(!u.profilePicture&&key&&store[key])u={...u,profilePicture:store[key]};
+      if(u.profilePicture&&key&&!store[key])storePicture(u,u.profilePicture);
+      if(typeof getUsers==='function'){
+        const saved=(getUsers()||[]).find(x=>(x.id&&x.id===u.id)||(x.email&&u.email&&x.email.toLowerCase()===u.email.toLowerCase()));
+        if(!u.profilePicture&&saved&&saved.profilePicture)u={...u,profilePicture:saved.profilePicture};
+      }
+    }
+    if(oldUpdate)oldUpdate(u);
+    setAvatar(document.getElementById('profileAvatar'),u);
+    setAvatar(document.getElementById('topAvatar'),u);
+    addProfileControls()
+  };
   
 function addHomeworkDetails() {
     const existingBox = document.getElementById('homeworkDetailsBox');
